@@ -1,0 +1,22 @@
+ĐỀ TÀI: ỨNG DỤNG CHIA SẺ THỜI TIẾT THỜI GIAN THỰC (CROWDSOURCING)
+
+Các chức năng chính:
+
+1. Báo cáo thời tiết (Report):
+- Người dùng chọn và gửi trạng thái thời tiết tại vị trí hiện tại (Nắng, Mưa nhẹ, Mưa lớn, Ngập lụt, Sương mù...) thông qua định vị GPS.
+- Giao diện thân thiện, cho phép người dùng báo cáo nhanh chỉ với 1-2 thao tác chạm.
+
+2. Đánh giá độ tin cậy và Tổng hợp (Cốt lõi):
+- Hệ thống tự động gom nhóm các báo cáo trong cùng một khu vực (Ví dụ: Phường Bình Chánh).
+- Càng nhiều người cùng báo cáo 1 trạng thái, hệ thống sẽ đưa ra đánh giá mức độ tin cậy càng cao cho cảnh báo thời tiết ở khu vực đó.
+
+3. Cơ chế thời gian thực (Real-time Reset):
+- Các báo cáo chỉ có hiệu lực trong một khoảng thời gian ngắn (Ví dụ: 15 phút).
+- Sau 15 phút, hệ thống tự động vô hiệu hóa trạng thái cũ để đảm bảo thông tin thời tiết luôn được cập nhật mới nhất và phản ánh đúng thực tế.
+
+4. Bản đồ thời tiết (Heatmap):
+- Hiển thị trực quan trạng thái thời tiết trên bản đồ.
+- Các khu vực có mưa lớn hoặc ngập sẽ được tô màu nổi bật (Heatmap) dựa trên dữ liệu cộng đồng gửi về.
+
+5. Nhận thông báo (Push Notification):
+- Tự động cảnh báo cho người dùng khi họ chuẩn bị di chuyển vào khu vực có nhiều người báo cáo đang mưa lớn hoặc ngập.
