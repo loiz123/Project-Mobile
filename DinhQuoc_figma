@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WWarning - 15-Min Reminder (Tiêu Lâm Định Quốc)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React 18 & Babel Compiler -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex items-center justify-center p-2 font-sans">
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function WWarningApp() {
+      const [activeTab, setActiveTab] = useState("lockscreen");
+      const [showToast, setShowToast] = useState(true);
+      const [showUpdateModal, setShowUpdateModal] = useState(false);
+      const [toastCountdown, setToastCountdown] = useState(30);
+
+      useEffect(() => {
+        let timer;
+        if (activeTab === "inapp" && toastCountdown > 0) {
+          timer = setInterval(() => setToastCountdown((prev) => prev - 1), 1000);
+        }
+        return () => clearInterval(timer);
+      }, [activeTab, toastCountdown]);
+
+      const handleQuickUpdate = (statusText) => {
+        alert(`[WWarning] Đã nhận phản hồi: "${statusText}". Cộng +10 Điểm uy tín!`);
+      };
+
+      return (
+        <div className="flex flex-col items-center justify-center">
+          {/* Header Switcher Figma Mode */}
+          <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-2 mb-4 flex items-center justify-between shadow-lg">
+            <div className="flex items-center gap-2 px-2 text-slate-300">
+              <span className="text-blue-400 font-bold">🔔</span>
+              <span className="font-semibold text-xs">Nhắc nhở 15 phút (Figma)</span>
+            </div>
+            <div className="flex bg-slate-950 rounded-xl p-1 border border-slate-800">
+              <button
+                onClick={() => setActiveTab("lockscreen")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  activeTab === "lockscreen"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                🔒 Lock Screen
+              </button>
+              <button
+                onClick={() => setActiveTab("inapp")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  activeTab === "inapp"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                🗺️ In-App
+              </button>
+            </div>
+          </div>
+
+          {/* Khung Điện Thoại Mobile */}
+          <div className="relative w-[360px] h-[740px] bg-[#0b1120] rounded-[40px] border-[8px] border-slate-800 shadow-2xl overflow-hidden flex flex-col justify-between">
+            
+            {/* Dynamic Island Notch */}
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-black rounded-full z-50 flex items-center justify-center">
+              <div className="w-2.5 h-2.5 rounded-full bg-slate-900 mr-2 border border-slate-800" />
+              <div className="w-2 h-2 rounded-full bg-blue-900/50" />
+            </div>
+
+            {/* KỊCH BẢN 1: MÀN HÌNH KHÓA (LOCK SCREEN PUSH) */}
+            {activeTab === "lockscreen" && (
+              <div className="relative flex-1 flex flex-col justify-between p-5 pt-9 bg-gradient-to-b from-slate-900 via-[#0b1528] to-[#080d18]">
+                <div className="flex justify-between items-center text-xs text-slate-300 px-1 font-medium">
+                  <span>Viettel 5G</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>85%</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center mt-4">
+                  <div className="w-7 h-7 rounded-full bg-slate-800/80 flex items-center justify-center mb-1 border border-slate-700/50">
+                    <span className="text-xs">🔒</span>
+                  </div>
+                  <h1 className="text-5xl font-light tracking-tight text-slate-100">08:15</h1>
+                  <p className="text-xs font-medium text-slate-400 mt-1">Thứ Hai, 24 Tháng 10</p>
+                </div>
+
+                <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-4 shadow-xl text-slate-200 my-auto">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center font-black text-[10px] text-white">W</div>
+                      <span className="text-xs font-semibold text-slate-300">AeroGuard Metro</span>
+                      <span className="text-[10px] text-slate-400">• Vừa xong</span>
+                    </div>
+                  </div>
+
+                  <div className="mb-3">
+                    <h3 className="text-xs font-bold text-white mb-1">Cập nhật hiện trường 15 phút</h3>
+                    <p className="text-[11px] text-slate-300 leading-snug">
+                      Thời tiết chỗ bạn hiện tại thế nào? Đã 15 phút kể từ báo cáo ngập nước của bạn tại{" "}
+                      <span className="underline decoration-blue-400 font-semibold text-white">Đường Nguyễn Hữu Cảnh</span>.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => handleQuickUpdate("Tạnh mưa / Đã rút")}
+                      className="w-full py-2 px-3 bg-slate-800/90 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-medium flex items-center justify-between transition-all"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>☀️</span>
+                        <span>Tạnh mưa / Đã rút</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-semibold">Báo ngay</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleQuickUpdate("Vẫn đang mưa / Ngập")}
+                      className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-semibold flex items-center justify-between text-white shadow-md transition-all"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>🌧️</span>
+                        <span>Vẫn đang mưa / Ngập</span>
+                      </div>
+                      <span>➔</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleQuickUpdate("Ngập nặng hơn (>20cm)")}
+                      className="w-full py-2 px-3 bg-amber-500/90 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-xs flex items-center justify-between shadow-md transition-all"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>⚠️</span>
+                        <span>Ngập nặng hơn (&gt;20cm)</span>
+                      </div>
+                      <span className="text-xs font-black">!</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center px-4 pb-1">
+                  <button className="w-10 h-10 rounded-full bg-slate-800/80 border border-slate-700/60 flex items-center justify-center">🔦</button>
+                  <div className="w-28 h-1 bg-slate-500/60 rounded-full" />
+                  <button className="w-10 h-10 rounded-full bg-slate-800/80 border border-slate-700/60 flex items-center justify-center">📷</button>
+                </div>
+              </div>
+            )}
+
+            {/* KỊCH BẢN 2: TRONG ỨNG DỤNG (IN-APP MAP & TOAST BANNER) */}
+            {activeTab === "inapp" && (
+              <div className="relative flex-1 flex flex-col justify-between bg-slate-900 overflow-hidden">
+                <div className="bg-[#0b1329] px-4 pt-8 pb-2 border-b border-slate-800 flex items-center justify-between z-20">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center font-black text-xs">W</div>
+                    <h2 className="font-bold text-xs text-slate-100">Thông Báo</h2>
+                  </div>
+                </div>
+
+                <div className="relative flex-1 bg-sky-100 overflow-hidden">
+                  {/* Bản đồ nền */}
+                  <div
+                    className="absolute inset-0 opacity-80"
+                    style={{
+                      backgroundImage: `radial-gradient(#94a3b8 1.5px, transparent 1.5px), linear-gradient(to right, #cbd5e1 1px, transparent 1px), linear-gradient(to bottom, #cbd5e1 1px, transparent 1px)`,
+                      backgroundSize: "24px 24px, 48px 48px, 48px 48px",
+                    }}
+                  >
+                    <div className="absolute top-8 left-6 bg-white/90 border border-slate-300 px-2 py-0.5 rounded text-[10px] font-bold text-slate-700">
+                      Đ. Nguyễn Hữu Cảnh
+                    </div>
+                  </div>
+
+                  {/* Toast Banner In-App */}
+                  {showToast && (
+                    <div className="absolute top-3 left-3 right-3 bg-[#0d162d]/95 backdrop-blur-md border border-amber-500/40 rounded-2xl p-3 shadow-2xl z-30 text-white">
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-amber-400 text-xs">⏱️</span>
+                          <div>
+                            <span className="text-[9px] font-bold uppercase tracking-wide text-amber-400 block">Cảnh báo đồng bộ</span>
+                            <h3 className="text-xs font-bold text-white">Đã qua 15 phút di chuyển</h3>
+                          </div>
+                        </div>
+                        <button onClick={() => setShowToast(false)} className="text-slate-400 text-xs">✕</button>
+                      </div>
+
+                      <p className="text-[10px] text-slate-300 leading-relaxed mb-2">
+                        Bạn vẫn ở khu vực <span className="text-amber-400 font-bold">Ngập lụt</span>? Chạm để cập nhật nhanh giúp cộng đồng 12.5k tài xế!
+                      </p>
+
+                      <button
+                        onClick={() => setShowUpdateModal(true)}
+                        className="w-full py-1.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-bold text-white shadow-md"
+                      >
+                        ⚡ Cập nhật ({toastCountdown}s)
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Chỉ số độ sâu ngập */}
+                  <div className="absolute bottom-3 left-3 bg-[#0d162d]/95 border border-slate-700/80 px-2.5 py-1.5 rounded-xl flex items-center gap-2 z-10">
+                    <div>
+                      <p className="text-[9px] text-slate-400 font-medium">Độ sâu ước lượng</p>
+                      <p className="text-xs font-bold text-amber-400">35cm – Ngập nửa bánh xe</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Bar Navigation */}
+                <div className="bg-[#0b1120] border-t border-slate-800 py-2 px-4 flex justify-between items-center text-[10px] text-slate-400">
+                  <span className="text-blue-500 font-bold">🗺️ Bản đồ</span>
+                  <span>📢 Báo cáo</span>
+                  <span>🔔 Thông báo</span>
+                  <span>👤 Cá nhân</span>
+                </div>
+              </div>
+            )}
+
+            {/* Modal cập nhật */}
+            {showUpdateModal && (
+              <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end p-3">
+                <div className="w-full bg-[#0d162d] border border-slate-700 rounded-2xl p-3 text-white">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-xs font-bold">Xác nhận diễn biến thời tiết</h3>
+                    <button onClick={() => setShowUpdateModal(false)} className="text-slate-400 text-xs">✕</button>
+                  </div>
+                  <div className="space-y-1.5 mb-1">
+                    {["☀️ Tạnh mưa / Nước đã rút hết", "🌧️ Vẫn mưa / Ngập nhẹ", "🌊 Ngập sâu nặng hơn"].map((item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setShowUpdateModal(false);
+                          setShowToast(false);
+                          alert("Đã cập nhật trạng thái!");
+                        }}
+                        className="w-full text-left px-3 py-2 bg-slate-800 hover:bg-blue-600 rounded-xl text-xs font-semibold"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<WWarningApp />);
+  </script>
+</body>
+</html>
