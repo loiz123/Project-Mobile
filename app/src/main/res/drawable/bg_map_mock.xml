@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="120dp"
+    android:viewportWidth="400"
+    android:viewportHeight="240">
+
+    <!-- Map Background - Light Blue-Grey Map Style -->
+    <path
+        android:fillColor="#D8E5ED"
+        android:pathData="M0,0h400v240H0z"/>
+
+    <!-- River (Saigon River Curve) -->
+    <path
+        android:fillColor="#A5C9EB"
+        android:pathData="M120,0 C140,50 180,80 230,90 C290,100 320,130 350,180 C370,210 390,230 400,240 L400,0 Z"/>
+
+    <path
+        android:fillColor="#A5C9EB"
+        android:pathData="M0,160 C50,150 90,170 120,200 C150,230 160,240 170,240 L0,240 Z"/>
+
+    <!-- Green Parks -->
+    <path
+        android:fillColor="#C8E6C9"
+        android:pathData="M30,30h50v40H30zM220,130h60v30H220zM310,40h70v50H310z"/>
+
+    <!-- Road Grid - Major White/Yellow Highways & Streets -->
+    <path
+        android:strokeColor="#FFE082"
+        android:strokeWidth="5"
+        android:pathData="M0,70 L400,120 M160,0 L160,240 M280,0 L200,240"/>
+
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:pathData="M50,0 L50,240 M100,0 L100,240 M220,0 L220,240 M320,0 L320,240 M0,40 L400,40 M0,150 L400,150 M0,200 L400,200"/>
+
+</vector>
