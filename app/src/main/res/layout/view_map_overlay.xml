@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Ô tìm kiếm + Radar -->
+    <LinearLayout
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_margin="12dp" android:orientation="horizontal">
+        <LinearLayout
+            android:layout_width="0dp" android:layout_height="44dp"
+            android:layout_weight="1" android:gravity="center_vertical"
+            android:background="@drawable/bg_card" android:paddingHorizontal="12dp">
+            <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                android:src="@android:drawable/ic_menu_search"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:layout_marginStart="8dp"
+                android:text="Tìm điểm ngập, tuyến đường an..."
+                android:textColor="@color/text_secondary" android:textSize="13sp"
+                android:maxLines="1"/>
+            <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                android:src="@android:drawable/ic_btn_speak_now"/>
+        </LinearLayout>
+        <TextView
+            android:layout_width="56dp" android:layout_height="44dp"
+            android:layout_marginStart="8dp" android:gravity="center"
+            android:background="@drawable/bg_card"
+            android:text="RADAR" android:textColor="@color/text_primary"
+            android:textSize="10sp" android:textStyle="bold"/>
+    </LinearLayout>
+
+    <!-- Chip lọc -->
+    <HorizontalScrollView
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="68dp" android:scrollbars="none">
+        <LinearLayout android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:paddingHorizontal="12dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="34dp"
+                android:gravity="center" android:paddingHorizontal="14dp"
+                android:background="@drawable/bg_chip_selected"
+                android:text="Tất cả  12" android:textColor="@color/text_primary"
+                android:textSize="12sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="34dp"
+                android:layout_marginStart="8dp" android:gravity="center"
+                android:paddingHorizontal="14dp" android:background="@drawable/bg_chip"
+                android:text="● Chỉ ngập lụt  4" android:textColor="@color/text_primary"
+                android:textSize="12sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="34dp"
+                android:layout_marginStart="8dp" android:gravity="center"
+                android:paddingHorizontal="14dp" android:background="@drawable/bg_chip"
+                android:text="Chỉ bão" android:textColor="@color/text_primary"
+                android:textSize="12sp"/>
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Marker điểm ngập -->
+    <LinearLayout
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_gravity="center" android:orientation="vertical"
+        android:gravity="center_horizontal">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:background="@drawable/bg_chip" android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp" android:text="Ngập 40cm  +48"
+            android:textColor="@color/text_primary" android:textSize="11sp"/>
+        <ImageView android:layout_width="40dp" android:layout_height="40dp"
+            android:layout_marginTop="4dp" android:background="@drawable/bg_badge_red"
+            android:padding="8dp" android:src="@android:drawable/ic_dialog_alert"/>
+    </LinearLayout>
+</FrameLayout>

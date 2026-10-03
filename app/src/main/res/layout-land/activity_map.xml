@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@color/bg_dark">
+
+    <com.google.android.material.navigationrail.NavigationRailView
+        android:id="@+id/bottomNav"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:background="@color/bg_card"
+        app:menu="@menu/bottom_nav_menu"
+        app:labelVisibilityMode="labeled"
+        app:itemTextColor="@color/text_secondary"
+        app:itemIconTint="@color/text_secondary"/>
+
+    <LinearLayout
+        android:layout_width="0dp" android:layout_height="match_parent"
+        android:layout_weight="1" android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="56dp"
+            android:gravity="center_vertical" android:paddingHorizontal="16dp">
+            <ImageView android:layout_width="28dp" android:layout_height="28dp"
+                android:src="@android:drawable/ic_menu_compass"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:layout_marginStart="12dp"
+                android:text="Bản Đồ" android:textColor="@color/text_primary"
+                android:textSize="18sp" android:textStyle="bold"/>
+            <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_search"/>
+            <ImageView android:layout_width="32dp" android:layout_height="32dp"
+                android:layout_marginStart="12dp"
+                android:src="@android:drawable/ic_menu_myplaces"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="0dp"
+            android:layout_weight="1" android:orientation="horizontal">
+
+            <FrameLayout
+                android:layout_width="0dp" android:layout_height="match_parent"
+                android:layout_weight="1" android:background="#0E1626">
+                <include layout="@layout/view_map_overlay"/>
+            </FrameLayout>
+
+            <ScrollView
+                android:layout_width="340dp" android:layout_height="match_parent">
+                <include layout="@layout/view_flood_card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </ScrollView>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

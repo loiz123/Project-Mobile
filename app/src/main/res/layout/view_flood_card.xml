@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:layout_gravity="bottom" android:layout_margin="12dp"
+    android:background="@drawable/bg_card" android:orientation="vertical"
+    android:padding="14dp">
+
+    <LinearLayout android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:gravity="center_vertical">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:text="Ngã tư Trần Phú - Nguyễn Trãi"
+            android:textColor="@color/text_primary" android:textSize="14sp"
+            android:textStyle="bold"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:background="@drawable/bg_badge_red"
+            android:paddingHorizontal="8dp" android:paddingVertical="3dp"
+            android:text="Ngập 40cm" android:textColor="@color/text_primary"
+            android:textSize="11sp" android:textStyle="bold"/>
+    </LinearLayout>
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="Xe máy chết máy hàng loạt, ngập nửa bánh ô tô con"
+        android:textColor="@color/text_secondary" android:textSize="12sp"/>
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="48 xác nhận  •  3 phút trước"
+        android:textColor="@color/text_secondary" android:textSize="11sp"/>
+
+    <LinearLayout android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical"
+            android:background="@drawable/bg_weather_item" android:padding="10dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Mực nước" android:textColor="@color/text_secondary"
+                android:textSize="11sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="40 cm" android:textColor="@color/text_primary"
+                android:textSize="15sp" android:textStyle="bold"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:layout_marginHorizontal="8dp"
+            android:orientation="vertical"
+            android:background="@drawable/bg_weather_item" android:padding="10dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Lưu thông" android:textColor="@color/text_secondary"
+                android:textSize="11sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Nguy hiểm" android:textColor="@color/orange"
+                android:textSize="15sp" android:textStyle="bold"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical"
+            android:background="@drawable/bg_weather_item" android:padding="10dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Tránh đi" android:textColor="@color/text_secondary"
+                android:textSize="11sp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Cầu vượt" android:textColor="@color/text_primary"
+                android:textSize="15sp" android:textStyle="bold"/>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

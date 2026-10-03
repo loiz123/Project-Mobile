@@ -1,0 +1,12 @@
+<resources>
+    <color name="bg_dark">#0B1220</color>
+    <color name="bg_card">#131C2E</color>
+    <color name="bg_card_light">#1A2438</color>
+    <color name="stroke">#26324A</color>
+    <color name="blue">#2F6BDB</color>
+    <color name="red">#E53935</color>
+    <color name="orange">#F5A623</color>
+    <color name="purple">#8E5CF0</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#8A97B0</color>
+</resources>
