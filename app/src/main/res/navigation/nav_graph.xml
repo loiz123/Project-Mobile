@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/mapFragment">
+
+    <fragment
+        android:id="@+id/mapFragment"
+        android:name="com.phatvv9.wwarning.ui.map.MapFragment"
+        android:label="Bản đồ" />
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.phatvv9.wwarning.ui.profile.ProfileFragment"
+        android:label="Hồ sơ" />
+
+    <fragment
+        android:id="@+id/adminFragment"
+        android:name="com.phatvv9.wwarning.ui.admin.AdminFragment"
+        android:label="Admin" />
+</navigation>
