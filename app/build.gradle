@@ -5,13 +5,6 @@ plugins {
 }
 
 android {
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-    buildFeatures {
-        viewBinding true
-    }
     namespace 'com.phatvv9.wwarning'
     compileSdk {
         version = release(37)
@@ -34,22 +27,26 @@ android {
             }
         }
     }
+
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    buildFeatures {
+        viewBinding true
     }
 }
 
 dependencies {
-    implementation libs.activity.ktx
+    implementation platform(libs.firebase.bom)
+    implementation libs.firebase.auth
+    implementation libs.firebase.firestore
     implementation libs.appcompat
     implementation libs.constraintlayout
     implementation libs.material
     implementation libs.play.services.maps
     implementation libs.play.services.location
     implementation libs.geofire.android.common
-    implementation platform(libs.firebase.bom)
-    implementation libs.firebase.firestore
     testImplementation libs.junit
     androidTestImplementation libs.espresso.core
     androidTestImplementation libs.ext.junit
