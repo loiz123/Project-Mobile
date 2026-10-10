@@ -23,17 +23,13 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.phatvv9.wwarning.R;
-import com.phatvv9.wwarning.data.remote.ReportRepository;
-import com.phatvv9.wwarning.ui.report.QuickReportDialog;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationClient;
     private Location currentLocation;
-    private ReportRepository repository;
 
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
@@ -47,7 +43,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_map, container, false);
 
-        repository = new ReportRepository();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
@@ -56,30 +51,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             mapFragment.getMapAsync(this);
         }
 
-        view.findViewById(R.id.fabQuickReport).setOnClickListener(v -> {
-            if (currentLocation != null) {
-                new QuickReportDialog(requireContext(), repository, currentLocation.getLatitude(), currentLocation.getLongitude()).show();
-            }
-        });
-
-        repository.getReports().observe(getViewLifecycleOwner(), reports -> {
-            if (mMap != null && reports != null) {
-                mMap.clear();
-                for (com.phatvv9.wwarning.model.Report report : reports) {
-                    LatLng pos = new LatLng(report.getLatitude(), report.getLongitude());
-                    mMap.addMarker(new MarkerOptions()
-                            .position(pos)
-                            .title(report.getCategoryId())
-                            .snippet("Vừa xong")); // placeholder snippet
-                }
-            }
-        });
-
         return view;
     }
 
     @Override
-    public void onMapReady(@NonNull GoogleMap googleMap) {
+    public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         checkLocationPermission();
     }
