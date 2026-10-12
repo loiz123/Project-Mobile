@@ -1,24 +1,55 @@
 package uen.edu.vn.quoc.dinhquoc;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Button;
+import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 public class MainActivity extends AppCompatActivity {
+
+    private VoteRepository voteRepository;
+    private static final String TEST_REPORT_ID = "ExIQbCRK1QJOCMYKHk4J";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+
+        voteRepository = new VoteRepository();
+
+        Button btnUpvote = findViewById(R.id.btnUpvote);
+        Button btnDownvote = findViewById(R.id.btnDownvote);
+        Button btnScheduleReminder = findViewById(R.id.btnScheduleReminder);
+        Button btnOpenAdmin = findViewById(R.id.btnOpenAdmin);
+
+        if (btnUpvote != null) {
+            btnUpvote.setOnClickListener(v -> {
+                voteRepository.castVote(TEST_REPORT_ID, 1);
+                Toast.makeText(this, "Đã gửi Upvote lên Firestore!", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        if (btnDownvote != null) {
+            btnDownvote.setOnClickListener(v -> {
+                voteRepository.castVote(TEST_REPORT_ID, -1);
+                Toast.makeText(this, "Đã gửi Downvote lên Firestore!", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        if (btnScheduleReminder != null) {
+            btnScheduleReminder.setOnClickListener(v -> {
+                WeatherReminderWorker.schedule15MinReminder(this);
+                Toast.makeText(this, "Đã lên lịch nhắc nhở sau 15 phút!", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        if (btnOpenAdmin != null) {
+            btnOpenAdmin.setOnClickListener(v -> {
+                Intent intent = new Intent(MainActivity.this, AdminActivity.class);
+                startActivity(intent);
+            });
+        }
     }
 }

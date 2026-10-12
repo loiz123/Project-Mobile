@@ -1,17 +1,18 @@
 plugins {
     alias(libs.plugins.android.application)
+    id("com.google.gms.google-services")
 }
 
 android {
     namespace = "uen.edu.vn.quoc.dinhquoc"
-    compileSdk {
-        version = release(37)
-    }
+
+    // Đặt compileSdk = 36 để tương thích với các thư viện AndroidX mới nhất
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "uen.edu.vn.quoc.dinhquoc"
+        applicationId = "com.phatvv9.wwarning"
         minSdk = 29
-        targetSdk = 37
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -39,5 +40,11 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
+
+    // WorkManager đếm ngược 15 phút
     implementation("androidx.work:work-runtime:2.9.0")
+
+    // Firebase BoM & Firestore Database
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+    implementation("com.google.firebase:firebase-firestore")
 }
