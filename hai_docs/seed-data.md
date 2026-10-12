@@ -3,14 +3,14 @@
 *Dự án: WWarning - Project-Mobile*
 
 ## 1. Collection `categories` (Loại thời tiết)
-| Document ID  | name       | icon_url | severity_level | is_risk | is_active |
-|--------------|------------|----------|----------------|---------|-----------|
-| `cat_nang`   | Nắng       | ""       | 1              | false   | true      |
-| `cat_mua`    | Mưa        | ""       | 2              | false   | true      |
-| `cat_suong`  | Sương mù   | ""       | 3              | false   | true      |
-| `cat_ngap`   | Ngập lụt   | ""       | 4              | true    | true      |
-| `cat_cay`    | Cây đổ     | ""       | 5              | true    | true      |
-| `cat_bao`    | Bão        | ""       | 5              | true    | true      |
+| Document ID  | name       | iconUrl | isRisk | isActive |
+|--------------|------------|---------|--------|----------|
+| `cat_nang`   | Nắng       | ""      | false  | true     |
+| `cat_mua`    | Mưa        | ""      | false  | true     |
+| `cat_suong`  | Sương mù   | ""      | false  | true     |
+| `cat_ngap`   | Ngập lụt   | ""      | true   | true     |
+| `cat_cay`    | Cây đổ     | ""      | true   | true     |
+| `cat_bao`    | Bão        | ""      | true   | true     |
 
 ## 2. Collection `app_settings` (Cấu hình ứng dụng)
 | Key (Document ID)    | value | description                           |
@@ -21,7 +21,7 @@
 | `downvote_threshold` | "5"   | Ngưỡng downvote chênh lệch để ẩn bài  |
 
 ## 3. Collection `severities` (Mức độ nghiêm trọng)
-| Document ID | category_id | name            | level |
+| Document ID | categoryId  | name            | level |
 |-------------|-------------|-----------------|-------|
 | `sev_mua_1` | `cat_mua`   | Mưa lất phất    | 1     |
 | `sev_mua_2` | `cat_mua`   | Mưa rào nặng hạt| 2     |

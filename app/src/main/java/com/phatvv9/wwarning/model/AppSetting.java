@@ -11,16 +11,26 @@ public class AppSetting {
     private String description;
 
     @ServerTimestamp
-    private Date updated_at;
+    private Date updatedAt;
 
     public AppSetting() {}
 
+    public AppSetting(String key, String value, String description, Date updatedAt) {
+        this.key = key;
+        this.value = value;
+        this.description = description;
+        this.updatedAt = updatedAt;
+    }
+
     public String getKey() { return key; }
     public void setKey(String key) { this.key = key; }
+
     public String getValue() { return value; }
     public void setValue(String value) { this.value = value; }
+
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public Date getUpdated_at() { return updated_at; }
-    public void setUpdated_at(Date updated_at) { this.updated_at = updated_at; }
+
+    public Date getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
 }
