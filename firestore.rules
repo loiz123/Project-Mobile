@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Quy tắc cho Báo cáo thời tiết
+    match /reports/{reportId} {
+      allow read: if true;
+      allow create, update: if request.auth != null;
+    }
+
+    // Quy tắc cho Lượt bình chọn
+    match /votes/{voteId} {
+      allow read: if true;
+      allow create, update: if request.auth != null || request.resource.data.userId != null;
+    }
+
+    // Quy tắc cho Người dùng bị cấm
+    match /banned_users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Quy tắc cho Cấu hình hệ thống
+    match /app_settings/{settingId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}
