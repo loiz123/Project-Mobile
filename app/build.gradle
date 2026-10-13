@@ -51,6 +51,9 @@ dependencies {
     implementation libs.navigation.fragment.ktx
     implementation libs.navigation.ui.ktx
 
+    // WorkManager (theo chuẩn Version Catalog)
+    implementation libs.androidx.work.runtime
+
     // Room Database
     implementation 'androidx.room:room-runtime:2.6.1'
     annotationProcessor 'androidx.room:room-compiler:2.6.1'
