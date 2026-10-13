@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Quy tắc cho Báo cáo thời tiết
+    match /weather_reports/{reportId} {
+      allow read: if true;
+      allow create: if request.auth != null || request.resource.data.deviceId != null;
+      allow update: if request.auth != null;
+    }
+
+    // Quy tắc cho Lượt bình chọn Upvote/Downvote
+    match /report_votes/{voteId} {
+      allow read: if true;
+      allow create, update: if request.auth != null || request.resource.data.userId != null;
+    }
+
+    // Quy tắc cho Thiết bị bị cấm
+    match /banned_devices/{deviceId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Cấu hình chung hệ thống
+    match /app_settings/{settingId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+  }
+}
