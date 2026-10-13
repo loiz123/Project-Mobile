@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
+// Bản lưu offline của "reports"; tên trường khớp model.Report (upCount, downCount, severityId)
 @Entity(tableName = "reports")
 public class ReportEntity {
     @PrimaryKey
@@ -11,6 +12,7 @@ public class ReportEntity {
     private String id;
     private String userId;
     private String categoryId;
+    private String severityId;
     private double latitude;
     private double longitude;
     private String geohash;
@@ -20,11 +22,13 @@ public class ReportEntity {
     private long createdAt;
     private long expiresAt;
 
-    public ReportEntity(@NonNull String id, String userId, String categoryId, double latitude, double longitude,
-                        String geohash, String status, int upCount, int downCount, long createdAt, long expiresAt) {
+    public ReportEntity(@NonNull String id, String userId, String categoryId, String severityId,
+                        double latitude, double longitude, String geohash, String status,
+                        int upCount, int downCount, long createdAt, long expiresAt) {
         this.id = id;
         this.userId = userId;
         this.categoryId = categoryId;
+        this.severityId = severityId;
         this.latitude = latitude;
         this.longitude = longitude;
         this.geohash = geohash;
@@ -41,6 +45,8 @@ public class ReportEntity {
     public void setUserId(String userId) { this.userId = userId; }
     public String getCategoryId() { return categoryId; }
     public void setCategoryId(String categoryId) { this.categoryId = categoryId; }
+    public String getSeverityId() { return severityId; }
+    public void setSeverityId(String severityId) { this.severityId = severityId; }
     public double getLatitude() { return latitude; }
     public void setLatitude(double latitude) { this.latitude = latitude; }
     public double getLongitude() { return longitude; }
