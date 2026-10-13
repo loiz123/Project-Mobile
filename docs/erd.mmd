@@ -1,0 +1,114 @@
+erDiagram
+    users ||--o{ user_devices : "dùng thiết bị"
+    users ||--o{ reports : "đăng"
+    users ||--o{ votes : "vote"
+    users ||--o{ reminders : "nhận nhắc"
+    users ||--o{ notifications : "nhận thông báo"
+    users ||--o{ reputation_logs : "đổi điểm"
+    users ||--o| banned_users : "bị khóa (userId)"
+    users ||--o{ banned_users : "khóa người khác (bannedBy)"
+    users ||--o{ moderation_logs : "admin thao tác (adminId)"
+    categories ||--o{ severities : "có mức độ"
+    categories ||--o{ reports : "phân loại"
+    severities |o--o{ reports : "mức độ"
+    reports ||--o{ votes : "được vote"
+    reports ||--o{ reminders : "sinh nhắc nhở"
+    reports |o--o{ notifications : "liên quan"
+    reports |o--o{ reputation_logs : "gây đổi điểm"
+    reports ||--o{ moderation_logs : "bị xử lý"
+
+    users {
+        string id PK "uid Firebase Auth"
+        string displayName
+        string authProvider "Guest | Google"
+        int reputationScore
+        int reportCount
+        string role "User | Admin"
+        string status "Active | Banned"
+        timestamp createdAt
+    }
+    user_devices {
+        string id PK "uid_deviceId"
+        string userId FK
+        string deviceId
+        string fcmToken
+        timestamp lastLogin
+    }
+    categories {
+        string id PK
+        string name
+        string iconUrl
+        boolean isRisk
+        boolean isActive
+    }
+    severities {
+        string id PK
+        string categoryId FK
+        string name
+        int level
+    }
+    reports {
+        string id PK
+        string userId FK
+        string categoryId FK
+        string severityId FK
+        double latitude
+        double longitude
+        string geohash
+        string status "Active | Hidden | Deleted"
+        int upCount
+        int downCount
+        timestamp createdAt
+        timestamp expiresAt
+    }
+    votes {
+        string id PK "reportId_uid"
+        string reportId FK
+        string userId FK
+        int voteValue "1 hoặc -1"
+        timestamp createdAt
+    }
+    reminders {
+        string id PK
+        string userId FK
+        string reportId FK
+        string status "Pending | Triggered | Cancelled"
+        timestamp triggerAt
+        timestamp createdAt
+    }
+    notifications {
+        string id PK
+        string userId FK
+        string reportId FK
+        string message
+        boolean isInteracted
+        timestamp createdAt
+    }
+    reputation_logs {
+        string id PK
+        string userId FK
+        string reportId FK
+        int delta
+        string reason
+        timestamp createdAt
+    }
+    banned_users {
+        string userId PK, FK
+        string bannedBy FK
+        string reason
+        timestamp bannedAt
+        timestamp expiresAt
+    }
+    moderation_logs {
+        string id PK
+        string adminId FK
+        string reportId FK
+        string action "Hide | Delete | Restore"
+        timestamp createdAt
+    }
+    app_settings {
+        string key PK "reminder_minutes..."
+        string value
+        string description
+        timestamp updatedAt
+    }
