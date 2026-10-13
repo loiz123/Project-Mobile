@@ -1,40 +1,39 @@
 package com.phatvv9.wwarning.model;
 
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.DocumentId;
+import com.google.firebase.firestore.ServerTimestamp;
 
+// Collection "reports" - khớp docs/firestore-schema.md mục 3.5
 public class Report {
+    @DocumentId
     private String id;
     private String userId;
     private String categoryId;
-    private String severityId;
+    private String severityId; // có thể null
     private double latitude;
     private double longitude;
     private String geohash;
-    private String description;
+    private String status = "Active"; // Active, Hidden, Deleted
+    private int upCount;
+    private int downCount;
+    @ServerTimestamp
     private Timestamp createdAt;
     private Timestamp expiresAt;
-    private int upvotes;
-    private int downvotes;
-    private String status;
 
-    public Report() {
-        // Default constructor required for calls to DataSnapshot.getValue(Report.class)
-    }
+    // Constructor rỗng bắt buộc cho Firestore
+    public Report() {}
 
-    public Report(String id, String userId, String categoryId, String severityId, double latitude, double longitude, String geohash, String description, Timestamp createdAt, Timestamp expiresAt) {
-        this.id = id;
+    // createdAt do server điền; expiresAt = bây giờ + expire_minutes (tính ở phía gọi)
+    public Report(String userId, String categoryId, String severityId,
+                  double latitude, double longitude, String geohash, Timestamp expiresAt) {
         this.userId = userId;
         this.categoryId = categoryId;
         this.severityId = severityId;
         this.latitude = latitude;
         this.longitude = longitude;
         this.geohash = geohash;
-        this.description = description;
-        this.createdAt = createdAt;
         this.expiresAt = expiresAt;
-        this.upvotes = 0;
-        this.downvotes = 0;
-        this.status = "active";
     }
 
     public String getId() { return id; }
@@ -51,16 +50,14 @@ public class Report {
     public void setLongitude(double longitude) { this.longitude = longitude; }
     public String getGeohash() { return geohash; }
     public void setGeohash(String geohash) { this.geohash = geohash; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public int getUpCount() { return upCount; }
+    public void setUpCount(int upCount) { this.upCount = upCount; }
+    public int getDownCount() { return downCount; }
+    public void setDownCount(int downCount) { this.downCount = downCount; }
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
     public Timestamp getExpiresAt() { return expiresAt; }
     public void setExpiresAt(Timestamp expiresAt) { this.expiresAt = expiresAt; }
-    public int getUpvotes() { return upvotes; }
-    public void setUpvotes(int upvotes) { this.upvotes = upvotes; }
-    public int getDownvotes() { return downvotes; }
-    public void setDownvotes(int downvotes) { this.downvotes = downvotes; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
 }
