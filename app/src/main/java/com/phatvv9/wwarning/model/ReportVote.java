@@ -1,8 +1,10 @@
 package com.phatvv9.wwarning.model;
 
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.DocumentId;
 
 public class ReportVote {
+    @DocumentId
     private String voteId;
     private String reportId;
     private String userId;

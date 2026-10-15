@@ -1,5 +1,10 @@
 package com.phatvv9.wwarning.data.remote;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -10,10 +15,14 @@ public class AdminRepository {
     private final FirebaseFirestore db;
 
     public AdminRepository() {
-        this.db = FirebaseFirestore.getInstance();
+        this(FirebaseFirestore.getInstance());
     }
 
-    public void banUser(String userId, String adminId, String reason, AdminCallback callback) {
+    public AdminRepository(@NonNull FirebaseFirestore db) {
+        this.db = db;
+    }
+
+    public void banUser(final String userId, String adminId, String reason, @Nullable final AdminCallback callback) {
         Map<String, Object> banData = new HashMap<>();
         banData.put("userId", userId);
         banData.put("bannedBy", adminId);
@@ -22,25 +31,37 @@ public class AdminRepository {
 
         db.collection("banned_users").document(userId)
                 .set(banData)
-                .addOnSuccessListener(aVoid -> {
-                    // Cập nhật trạng thái trong profile người dùng
-                    db.collection("users").document(userId).update("status", "Banned");
-                    if (callback != null) callback.onSuccess();
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        // Cập nhật trạng thái trong profile người dùng
+                        db.collection("users").document(userId).update("status", "Banned");
+                        if (callback != null) callback.onSuccess();
+                    }
                 })
-                .addOnFailureListener(e -> {
-                    if (callback != null) callback.onError(e.getMessage());
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        if (callback != null) callback.onError(e.getMessage());
+                    }
                 });
     }
 
-    public void unbanUser(String userId, AdminCallback callback) {
+    public void unbanUser(final String userId, @Nullable final AdminCallback callback) {
         db.collection("banned_users").document(userId)
                 .delete()
-                .addOnSuccessListener(aVoid -> {
-                    db.collection("users").document(userId).update("status", "Active");
-                    if (callback != null) callback.onSuccess();
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        db.collection("users").document(userId).update("status", "Active");
+                        if (callback != null) callback.onSuccess();
+                    }
                 })
-                .addOnFailureListener(e -> {
-                    if (callback != null) callback.onError(e.getMessage());
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        if (callback != null) callback.onError(e.getMessage());
+                    }
                 });
     }
 
