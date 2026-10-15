@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Báo cáo nhanh thời tiết"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="?android:attr/textColorPrimary"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Chọn hiện tượng thời tiết tại vị trí hiện tại của bạn:"
+        android:textSize="14sp"
+        android:textColor="?android:attr/textColorSecondary"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:columnCount="2"
+        android:rowCount="3">
+
+        <Button
+            android:id="@+id/btnSunny"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_columnWeight="1"
+            android:layout_margin="6dp"
+            android:text="☀️ Nắng"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnRain"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_columnWeight="1"
+            android:layout_margin="6dp"
+            android:text="🌧️ Mưa"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnFog"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_columnWeight="1"
+            android:layout_margin="6dp"
+            android:text="🌫️ Sương mù"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnStorm"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_columnWeight="1"
+            android:layout_margin="6dp"
+            android:text="⛈️ Bão"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnFlood"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_columnWeight="1"
+            android:layout_margin="6dp"
+            android:text="🌊 Ngập lụt"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/btnTree"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_columnWeight="1"
+            android:layout_margin="6dp"
+            android:text="🪵 Cây đổ"
+            android:textSize="16sp" />
+    </GridLayout>
+
+    <Button
+        android:id="@+id/btnCancel"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Hủy" />
+
+</LinearLayout>
