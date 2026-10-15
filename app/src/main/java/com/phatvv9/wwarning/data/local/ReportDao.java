@@ -15,6 +15,12 @@ public interface ReportDao {
     @Query("SELECT * FROM reports ORDER BY createdAt DESC")
     LiveData<List<ReportEntity>> getAllReports();
 
+    @Query("SELECT * FROM reports ORDER BY createdAt DESC")
+    List<ReportEntity> getAllReportsSync();
+
+    @Query("SELECT * FROM reports WHERE id = :id LIMIT 1")
+    ReportEntity getReportById(String id);
+
     @Query("DELETE FROM reports WHERE expiresAt < :currentTime")
     void deleteOlderThan(long currentTime);
 }
