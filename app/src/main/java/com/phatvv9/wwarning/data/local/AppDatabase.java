@@ -5,11 +5,10 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
-// version 2: thêm cột severityId vào bảng reports. Đây chỉ là bộ nhớ đệm offline
-// nên khi đổi cấu trúc cho phép xóa và tạo lại (dữ liệu thật nằm trên Firestore).
-@Database(entities = {ReportEntity.class}, version = 2, exportSchema = false)
+@Database(entities = {ReportEntity.class, CategoryEntity.class}, version = 3, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
     public abstract ReportDao reportDao();
+    public abstract CategoryDao categoryDao();
 
     private static volatile AppDatabase INSTANCE;
 
