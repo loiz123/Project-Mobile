@@ -31,6 +31,10 @@ public class QuickReportDialog extends Dialog {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.dialog_quick_report);
 
+        if (getWindow() != null) {
+            getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
         findViewById(R.id.btnSunny).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
