@@ -13,9 +13,10 @@ public class AdminRepository {
         this.db = FirebaseFirestore.getInstance();
     }
 
-    public void banUser(String userId, String reason, AdminCallback callback) {
+    public void banUser(String userId, String adminId, String reason, AdminCallback callback) {
         Map<String, Object> banData = new HashMap<>();
         banData.put("userId", userId);
+        banData.put("bannedBy", adminId);
         banData.put("reason", reason);
         banData.put("bannedAt", Timestamp.now());
 
