@@ -31,6 +31,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.Timestamp;
@@ -38,6 +39,7 @@ import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.ReportRepository;
 import com.phatvv9.wwarning.model.Report;
 import com.phatvv9.wwarning.ui.report.QuickReportDialog;
+import com.phatvv9.wwarning.ui.report.ReportDetailSheet;
 
 import java.util.List;
 
@@ -100,6 +102,15 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
+        mMap.setOnMarkerClickListener(marker -> {
+            Object tag = marker.getTag();
+            if (tag instanceof Report) {
+                ReportDetailSheet.newInstance((Report) tag)
+                        .show(getChildFragmentManager(), "ReportDetailSheet");
+                return true; // không mở cửa sổ thông tin mặc định
+            }
+            return false;
+        });
         checkLocationPermission();
         if (cachedReports != null) {
             renderReportMarkers(cachedReports);
@@ -120,11 +131,13 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                     .snippet(snippet)
                     .icon(BitmapDescriptorFactory.defaultMarker(getCategoryHue(report.getCategoryId())));
 
-            mMap.addMarker(options);
+            Marker marker = mMap.addMarker(options);
+            if (marker != null) marker.setTag(report);
         }
     }
 
-    private String getCategoryDisplayName(@Nullable String categoryId) {
+    @NonNull
+    public static String getCategoryDisplayName(@Nullable String categoryId) {
         if (categoryId == null) return "Cảnh báo thời tiết";
         switch (categoryId) {
             case "cat_nang":
