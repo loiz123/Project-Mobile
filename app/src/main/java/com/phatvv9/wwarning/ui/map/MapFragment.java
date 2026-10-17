@@ -38,6 +38,7 @@ import com.google.firebase.Timestamp;
 import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.ReportRepository;
 import com.phatvv9.wwarning.model.Report;
+import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.ui.report.QuickReportDialog;
 import com.phatvv9.wwarning.ui.report.ReportDetailSheet;
 
@@ -77,6 +78,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         view.findViewById(R.id.fabQuickReport).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (UserRepository.getInstance().isBanned()) {
+                    Toast.makeText(requireContext(), "Tài khoản của bạn đã bị khóa, không thể gửi báo cáo", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 if (currentLocation != null) {
                     new QuickReportDialog(requireContext(), reportRepository,
                             currentLocation.getLatitude(), currentLocation.getLongitude()).show();
