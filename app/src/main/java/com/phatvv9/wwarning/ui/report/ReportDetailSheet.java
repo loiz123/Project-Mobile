@@ -18,6 +18,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.phatvv9.wwarning.R;
+import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.data.remote.VoteRepository;
 import com.phatvv9.wwarning.model.Report;
 import com.phatvv9.wwarning.ui.map.MapFragment;
@@ -139,6 +140,10 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) {
             Toast.makeText(requireContext(), "Bạn cần đăng nhập để bình chọn", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (UserRepository.getInstance().isBanned()) {
+            Toast.makeText(requireContext(), "Tài khoản của bạn đã bị khóa, không thể bình chọn", Toast.LENGTH_SHORT).show();
             return;
         }
         if (reportId == null) return;
