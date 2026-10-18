@@ -15,6 +15,7 @@ public class UserProfile {
     private String role;           // User, Admin
     private String status;         // Active, Banned
     private int reputationScore;
+    private int reportCount = 0;
     @ServerTimestamp
     private Timestamp createdAt;
 
@@ -31,7 +32,8 @@ public class UserProfile {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-
+    public int getReportCount() { return reportCount; }
+    public void setReportCount(int reportCount) { this.reportCount = reportCount; }
     public String getDisplayName() { return displayName; }
     public void setDisplayName(String displayName) { this.displayName = displayName; }
 
