@@ -21,6 +21,7 @@ import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.data.remote.VoteRepository;
 import com.phatvv9.wwarning.model.Report;
+import com.phatvv9.wwarning.model.UserProfile;
 import com.phatvv9.wwarning.ui.map.MapFragment;
 
 public class ReportDetailSheet extends BottomSheetDialogFragment {
@@ -30,10 +31,12 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
     private static final String ARG_CREATED = "createdAtMillis";
     private static final String ARG_UP = "upCount";
     private static final String ARG_DOWN = "downCount";
+    private static final String ARG_AUTHOR = "authorId";
 
     private String reportId;
     private String categoryId;
     private String severityId;
+    private String authorId;
     private long createdAtMillis;
     private int upCount;
     private int downCount;
@@ -41,6 +44,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
     private TextView tvCategory;
     private TextView tvTime;
     private TextView tvSeverity;
+    private TextView tvAuthor;
     private TextView tvUpvoteCount;
     private TextView tvDownvoteCount;
     private Button btnUpvote;
@@ -53,6 +57,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         args.putString(ARG_REPORT_ID, report.getId());
         args.putString(ARG_CATEGORY, report.getCategoryId());
         args.putString(ARG_SEVERITY, report.getSeverityId());
+        args.putString(ARG_AUTHOR, report.getUserId());
         Timestamp created = report.getCreatedAt();
         args.putLong(ARG_CREATED, created != null ? created.toDate().getTime() : -1L);
         args.putInt(ARG_UP, report.getUpCount());
@@ -71,6 +76,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
             reportId = args.getString(ARG_REPORT_ID);
             categoryId = args.getString(ARG_CATEGORY);
             severityId = args.getString(ARG_SEVERITY);
+            authorId = args.getString(ARG_AUTHOR);
             createdAtMillis = args.getLong(ARG_CREATED, -1L);
             upCount = args.getInt(ARG_UP, 0);
             downCount = args.getInt(ARG_DOWN, 0);
@@ -91,6 +97,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         tvCategory = view.findViewById(R.id.tvReportCategory);
         tvTime = view.findViewById(R.id.tvReportTime);
         tvSeverity = view.findViewById(R.id.tvReportSeverity);
+        tvAuthor = view.findViewById(R.id.tvReportAuthor);
         tvUpvoteCount = view.findViewById(R.id.tvUpvoteCount);
         tvDownvoteCount = view.findViewById(R.id.tvDownvoteCount);
         btnUpvote = view.findViewById(R.id.btnUpvote);
@@ -108,6 +115,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         }
 
         showCounts();
+        loadAuthor();
 
         btnUpvote.setOnClickListener(v -> vote(1));
         btnDownvote.setOnClickListener(v -> vote(-1));
@@ -124,6 +132,24 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
                         tvSeverity.setText("Mức độ: " + name);
                     }
                 });
+    }
+
+    // Hiện tên và điểm uy tín của người đăng báo cáo (users/{authorId})
+    private void loadAuthor() {
+        if (tvAuthor == null || authorId == null || authorId.isEmpty()) return;
+        UserRepository.getInstance().fetchProfile(authorId, new UserRepository.UserCallback() {
+            @Override
+            public void onSuccess(@NonNull UserProfile profile) {
+                if (!isAdded() || tvAuthor == null) return;
+                tvAuthor.setText("Người đăng: " + profile.getDisplayName()
+                        + " · Uy tín: " + profile.getReputationScore());
+            }
+
+            @Override
+            public void onError(@NonNull Exception e) {
+                // Báo cáo cũ có thể chưa có hồ sơ người đăng; giữ nguyên dòng mặc định
+            }
+        });
     }
 
     private void showCounts() {
@@ -174,6 +200,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
                     upCount = up != null ? up.intValue() : 0;
                     downCount = down != null ? down.intValue() : 0;
                     showCounts();
+                    loadAuthor();
                     setButtonsEnabled(true);
                 })
                 .addOnFailureListener(e -> {
