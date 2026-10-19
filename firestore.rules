@@ -39,7 +39,9 @@ service cloud.firestore {
         && request.resource.data.reportCount == 0
         && request.resource.data.authProvider in ['Guest', 'Google'];
 
-      // Người dùng chỉ sửa tên và loại tài khoản; admin chỉ sửa status (khóa/mở khóa)
+      // Chủ hồ sơ chỉ sửa tên và loại tài khoản; admin chỉ sửa status (khóa/mở khóa);
+      // người khác (người vote) chỉ đổi reputationScore của người đăng báo cáo,
+      // tối đa 15 điểm một lần và không xuống dưới 0
       allow update: if isSignedIn() && (
         (request.auth.uid == userId
           && request.resource.data.diff(resource.data).affectedKeys()
@@ -48,6 +50,12 @@ service cloud.firestore {
         ||
         (isAdmin()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+        ||
+        (!isBanned()
+          && request.auth.uid != userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reputationScore'])
+          && request.resource.data.reputationScore >= 0
+          && math.abs(request.resource.data.reputationScore - resource.data.reputationScore) <= 15)
       );
 
       allow delete: if false;
@@ -153,9 +161,16 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Dòng log do người vote ghi cho người đăng báo cáo (cùng transaction với việc đổi điểm)
     match /reputation_logs/{logId} {
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow write: if false;
+      allow create: if isSignedIn()
+        && !isBanned()
+        && request.resource.data.userId != request.auth.uid
+        && request.resource.data.keys().hasOnly(['userId', 'reportId', 'delta', 'reason', 'createdAt'])
+        && request.resource.data.delta is int
+        && math.abs(request.resource.data.delta) <= 10;
+      allow update, delete: if false;
     }
   }
 }
