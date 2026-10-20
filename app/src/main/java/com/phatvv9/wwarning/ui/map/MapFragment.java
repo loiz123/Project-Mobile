@@ -9,6 +9,7 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultCallback;
@@ -36,11 +37,13 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.Timestamp;
 import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.ReportRepository;
 import com.phatvv9.wwarning.data.remote.SettingsRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
+import com.phatvv9.wwarning.data.sync.SyncManager;
 import com.phatvv9.wwarning.model.Report;
 import com.phatvv9.wwarning.ui.report.QuickReportDialog;
 import com.phatvv9.wwarning.ui.report.ReportDetailSheet;
@@ -61,6 +64,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private boolean isFirstLocationUpdate = true;
     private List<Report> cachedReports;
     private CameraPosition restoredCameraPosition;
+
+    private TextView tvOfflineBanner;
+    private ChipGroup chipGroupRiskFilter;
+    private boolean isRiskFilterActive = false;
 
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), new ActivityResultCallback<Boolean>() {
@@ -92,6 +99,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_map, container, false);
 
+        tvOfflineBanner = view.findViewById(R.id.tvOfflineBanner);
+        chipGroupRiskFilter = view.findViewById(R.id.chipGroupRiskFilter);
+
         reportRepository = new ReportRepository(requireContext());
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
@@ -116,6 +126,29 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 }
             }
         });
+
+        // Theo dõi trạng thái mạng online/offline
+        SyncManager.getInstance(requireContext()).getIsOnlineLiveData().observe(getViewLifecycleOwner(), new Observer<Boolean>() {
+            @Override
+            public void onChanged(Boolean isOnline) {
+                if (tvOfflineBanner != null) {
+                    tvOfflineBanner.setVisibility(Boolean.TRUE.equals(isOnline) ? View.GONE : View.VISIBLE);
+                }
+            }
+        });
+
+        // Theo dõi bộ lọc rủi ro (ChipGroup)
+        if (chipGroupRiskFilter != null) {
+            chipGroupRiskFilter.setOnCheckedStateChangeListener(new ChipGroup.OnCheckedStateChangeListener() {
+                @Override
+                public void onCheckedChanged(@NonNull ChipGroup group, @NonNull List<Integer> checkedIds) {
+                    isRiskFilterActive = checkedIds.contains(R.id.chipFilterRisk);
+                    if (cachedReports != null) {
+                        renderReportMarkers(cachedReports);
+                    }
+                }
+            });
+        }
 
         reportRepository.getReports().observe(getViewLifecycleOwner(), new Observer<List<Report>>() {
             @Override
@@ -184,6 +217,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 continue;
             }
 
+            // Lọc theo bộ lọc rủi ro (khi chip "Chỉ rủi ro" được chọn)
+            if (isRiskFilterActive && !isRiskCategory(report.getCategoryId())) {
+                continue;
+            }
+
             LatLng pos = new LatLng(report.getLatitude(), report.getLongitude());
             String title = getCategoryDisplayName(report.getCategoryId());
             String snippet = getRelativeTime(report.getCreatedAt());
@@ -215,6 +253,21 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
             Marker marker = mMap.addMarker(options);
             if (marker != null) marker.setTag(report);
+        }
+    }
+
+    public static boolean isRiskCategory(@Nullable String categoryId) {
+        if (categoryId == null) return false;
+        switch (categoryId) {
+            case "cat_ngap":
+            case "cat_bao":
+            case "cat_cay":
+            case "Flood":
+            case "Storm":
+            case "FallenTree":
+                return true;
+            default:
+                return false;
         }
     }
 
