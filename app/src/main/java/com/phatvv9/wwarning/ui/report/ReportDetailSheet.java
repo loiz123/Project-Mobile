@@ -12,10 +12,13 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.UserRepository;
@@ -117,19 +120,32 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         showCounts();
         loadAuthor();
 
-        btnUpvote.setOnClickListener(v -> vote(1));
-        btnDownvote.setOnClickListener(v -> vote(-1));
+        btnUpvote.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                vote(1);
+            }
+        });
+        btnDownvote.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                vote(-1);
+            }
+        });
     }
 
     // severityId là id document trong collection "severities"; đọc field "name" để hiện tên
     private void loadSeverityName() {
         if (severityId == null || severityId.isEmpty()) return;
         FirebaseFirestore.getInstance().collection("severities").document(severityId).get()
-                .addOnSuccessListener(snap -> {
-                    if (!isAdded() || getView() == null) return;
-                    String name = snap.getString("name");
-                    if (name != null && !name.isEmpty()) {
-                        tvSeverity.setText("Mức độ: " + name);
+                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot snap) {
+                        if (!isAdded() || getView() == null) return;
+                        String name = snap.getString("name");
+                        if (name != null && !name.isEmpty()) {
+                            tvSeverity.setText("Mức độ: " + name);
+                        }
                     }
                 });
     }
@@ -193,19 +209,25 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
     // VoteRepository chỉ ghi Firestore, nên đọc lại báo cáo để hiện số vote mới
     private void refreshCounts() {
         FirebaseFirestore.getInstance().collection("reports").document(reportId).get()
-                .addOnSuccessListener(snap -> {
-                    if (!isAdded()) return;
-                    Long up = snap.getLong("upCount");
-                    Long down = snap.getLong("downCount");
-                    upCount = up != null ? up.intValue() : 0;
-                    downCount = down != null ? down.intValue() : 0;
-                    showCounts();
-                    loadAuthor();
-                    setButtonsEnabled(true);
+                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot snap) {
+                        if (!isAdded()) return;
+                        Long up = snap.getLong("upCount");
+                        Long down = snap.getLong("downCount");
+                        upCount = up != null ? up.intValue() : 0;
+                        downCount = down != null ? down.intValue() : 0;
+                        showCounts();
+                        loadAuthor();
+                        setButtonsEnabled(true);
+                    }
                 })
-                .addOnFailureListener(e -> {
-                    if (!isAdded()) return;
-                    setButtonsEnabled(true);
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        if (!isAdded()) return;
+                        setButtonsEnabled(true);
+                    }
                 });
     }
 }
