@@ -15,6 +15,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.Transaction;
 import com.phatvv9.wwarning.model.ReportVote;
+import com.phatvv9.wwarning.util.FirestoreNames;
 import com.phatvv9.wwarning.util.ReputationPolicy;
 
 import java.util.ArrayList;
@@ -48,6 +49,8 @@ public class VoteRepository {
         String voteDocId = reportId + "_" + userId;
         DocumentReference voteRef = db.collection("votes").document(voteDocId);
         DocumentReference reportRef = db.collection("reports").document(reportId);
+        DocumentReference thresholdRef = db.collection(FirestoreNames.APP_SETTINGS)
+                .document(FirestoreNames.SettingKey.DOWNVOTE_THRESHOLD);
         final Outcome outcome = new Outcome();
         final String voterId = userId;
 
@@ -60,8 +63,12 @@ public class VoteRepository {
                 outcome.voteReason = null;
                 outcome.newlyHidden = false;
 
+                // Firestore yêu cầu mọi lệnh đọc nằm trước lệnh ghi đầu tiên
                 DocumentSnapshot voteSnap = transaction.get(voteRef);
                 DocumentSnapshot reportSnap = transaction.get(reportRef);
+                DocumentSnapshot thresholdSnap = transaction.get(thresholdRef);
+                int downvoteThreshold = readThreshold(thresholdSnap);
+
                 outcome.authorId = reportSnap.getString("userId");
                 String previousStatus = reportSnap.getString("status");
 
@@ -112,8 +119,8 @@ public class VoteRepository {
                 updateReport.put("upCount", currentUpCount);
                 updateReport.put("downCount", currentDownCount);
 
-                // Tự động ẩn bài viết nếu downvote > upvote + ngưỡng (mặc định 5)
-                if (currentDownCount > currentUpCount + DEFAULT_DOWNVOTE_THRESHOLD) {
+                // Tự động ẩn bài viết nếu downvote > upvote + ngưỡng (app_settings, mặc định 5)
+                if (currentDownCount > currentUpCount + downvoteThreshold) {
                     updateReport.put("status", "Hidden");
                     outcome.newlyHidden = !"Hidden".equals(previousStatus);
                 }
@@ -132,6 +139,17 @@ public class VoteRepository {
                 if (callback != null) callback.onError(e.getMessage());
             }
         });
+    }
+
+    // app_settings/downvote_threshold: value dạng chuỗi; thiếu hoặc sai thì dùng mặc định
+    private static int readThreshold(@NonNull DocumentSnapshot snap) {
+        Object raw = snap.exists() ? snap.get("value") : null;
+        if (raw == null) return DEFAULT_DOWNVOTE_THRESHOLD;
+        try {
+            return Math.max(0, Integer.parseInt(String.valueOf(raw).trim()));
+        } catch (NumberFormatException e) {
+            return DEFAULT_DOWNVOTE_THRESHOLD;
+        }
     }
 
     /**
