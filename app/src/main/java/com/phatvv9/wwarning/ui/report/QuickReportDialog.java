@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 
 import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.ReportRepository;
+import com.phatvv9.wwarning.worker.ReminderScheduler;
 
 public class QuickReportDialog extends Dialog {
 
@@ -84,6 +85,8 @@ public class QuickReportDialog extends Dialog {
             @Override
             public void onSuccess(@NonNull String reportId) {
                 Toast.makeText(getContext(), "Đã gửi cảnh báo thời tiết thành công!", Toast.LENGTH_SHORT).show();
+                ReminderScheduler.requestNotificationPermissionIfNeeded(getContext());
+                ReminderScheduler.schedule(getContext(), reportId);
             }
 
             @Override
