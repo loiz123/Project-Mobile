@@ -163,6 +163,28 @@ public class UserRepository {
                 });
     }
 
+    /** Đọc một lần hồ sơ của người bất kỳ (dùng để hiện tên và điểm uy tín của người đăng báo cáo). */
+    public void fetchProfile(@NonNull String uid, @NonNull final UserCallback callback) {
+        db.collection(FirestoreNames.USERS).document(uid).get()
+                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot doc) {
+                        UserProfile profile = doc.exists() ? doc.toObject(UserProfile.class) : null;
+                        if (profile != null) {
+                            callback.onSuccess(profile);
+                        } else {
+                            callback.onError(new IllegalStateException("Không có hồ sơ users/" + doc.getId()));
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        callback.onError(e);
+                    }
+                });
+    }
+
     /** Bắt đầu nghe users/{uid}. Gọi lại với uid khác sẽ thay listener cũ. */
     public void startListening(@NonNull String uid) {
         stopListening();
