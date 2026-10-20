@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 public class VoteRepository {
-    private static final int DEFAULT_DOWNVOTE_THRESHOLD = 5;
     private final FirebaseFirestore db;
     private final ReputationRepository reputationRepository;
 
@@ -112,8 +111,9 @@ public class VoteRepository {
                 updateReport.put("upCount", currentUpCount);
                 updateReport.put("downCount", currentDownCount);
 
-                // Tự động ẩn bài viết nếu downvote > upvote + ngưỡng (mặc định 5)
-                if (currentDownCount > currentUpCount + DEFAULT_DOWNVOTE_THRESHOLD) {
+                // Tự động ẩn bài viết nếu downvote > upvote + ngưỡng cấu hình từ app_settings
+                int threshold = SettingsRepository.getInstance().getDownvoteThreshold();
+                if (currentDownCount > currentUpCount + threshold) {
                     updateReport.put("status", "Hidden");
                     outcome.newlyHidden = !"Hidden".equals(previousStatus);
                 }

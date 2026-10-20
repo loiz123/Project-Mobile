@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -38,6 +39,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.Timestamp;
 import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.ReportRepository;
+import com.phatvv9.wwarning.data.remote.SettingsRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.model.Report;
 import com.phatvv9.wwarning.ui.report.QuickReportDialog;
@@ -61,9 +63,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private CameraPosition restoredCameraPosition;
 
     private final ActivityResultLauncher<String> requestPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                if (isGranted) {
-                    enableMyLocation();
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), new ActivityResultCallback<Boolean>() {
+                @Override
+                public void onActivityResult(Boolean isGranted) {
+                    if (Boolean.TRUE.equals(isGranted)) {
+                        enableMyLocation();
+                    }
                 }
             });
 
@@ -87,7 +92,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_map, container, false);
 
-        reportRepository = new ReportRepository();
+        reportRepository = new ReportRepository(requireContext());
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
@@ -168,6 +173,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         mMap.clear();
 
         long now = System.currentTimeMillis();
+        int fadeMinutes = SettingsRepository.getInstance().getFadeMinutes();
 
         for (Report report : reports) {
             // Lọc bỏ báo cáo đã quá hạn hoặc không còn Active
@@ -189,11 +195,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 snippet = "Cộng đồng xác thực cao • " + snippet;
             }
 
-            // Tuần 3: Marker sắp hết hạn (còn dưới 15 phút) đặt alpha 0.5f làm mờ
+            // Tuần 3: Marker sắp hết hạn (còn dưới fadeMinutes từ app_settings, mặc định 15 phút) đặt alpha 0.5f làm mờ
             float alpha = 1.0f;
             if (report.getExpiresAt() != null) {
                 long remainingMs = report.getExpiresAt().toDate().getTime() - now;
-                if (remainingMs > 0 && remainingMs <= 15 * 60 * 1000L) {
+                if (remainingMs > 0 && remainingMs <= fadeMinutes * 60 * 1000L) {
                     alpha = 0.5f;
                     snippet += " (Sắp hết hạn)";
                 }
@@ -297,7 +303,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 public void onSuccess(Location location) {
                     if (location != null) {
                         currentLocation = location;
-                        // Cập nhật toạ độ GPS cho ReportRepository kích hoạt truy vấn 10km
+                        // Cập nhật toạ độ GPS cho ReportRepository kích hoạt truy vấn bán kính từ app_settings
                         reportRepository.setLocation(location.getLatitude(), location.getLongitude());
 
                         if (isFirstLocationUpdate) {
