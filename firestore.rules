@@ -1,0 +1,176 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Hàm dùng chung ----------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    // Admin: users/{uid}.role == 'Admin' (đặt tay trên Console, client không tự đặt được)
+    function isAdmin() {
+      return isSignedIn() && get(userDoc(request.auth.uid)).data.role == 'Admin';
+    }
+
+    // Bị khóa: users/{uid}.status == 'Banned'. Chưa có hồ sơ thì coi như không bị khóa.
+    function isBanned() {
+      return isSignedIn()
+        && exists(userDoc(request.auth.uid))
+        && get(userDoc(request.auth.uid)).data.status == 'Banned';
+    }
+
+    // ---------- users ----------
+    match /users/{userId} {
+      allow read: if isSignedIn();
+
+      // Chỉ tạo hồ sơ của chính mình, với giá trị khởi tạo chuẩn
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(
+             ['displayName', 'authProvider', 'role', 'status',
+              'reputationScore', 'reportCount', 'createdAt'])
+        && request.resource.data.role == 'User'
+        && request.resource.data.status == 'Active'
+        && request.resource.data.reputationScore == 100
+        && request.resource.data.reportCount == 0
+        && request.resource.data.authProvider in ['Guest', 'Google'];
+
+      // Chủ hồ sơ chỉ sửa tên và loại tài khoản; admin chỉ sửa status (khóa/mở khóa);
+      // người khác (người vote) chỉ đổi reputationScore của người đăng báo cáo,
+      // tối đa 15 điểm một lần và không xuống dưới 0
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['displayName', 'authProvider'])
+          && request.resource.data.authProvider in ['Guest', 'Google'])
+        ||
+        (isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+        ||
+        (!isBanned()
+          && request.auth.uid != userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reputationScore'])
+          && request.resource.data.reputationScore >= 0
+          && math.abs(request.resource.data.reputationScore - resource.data.reputationScore) <= 15)
+      );
+
+      allow delete: if false;
+    }
+
+    // ---------- user_devices ({uid}_{deviceId}) ----------
+    match /user_devices/{docId} {
+      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create, update: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && docId.matches(request.auth.uid + '_.*');
+    }
+
+    // ---------- categories, severities (dữ liệu cấu hình, chỉ đọc) ----------
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /severities/{severityId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ---------- reports ----------
+    match /reports/{reportId} {
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && !isBanned()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'Active'
+        && request.resource.data.get('upCount', 0) == 0
+        && request.resource.data.get('downCount', 0) == 0;
+
+      allow update: if isSignedIn() && (
+        // Admin ẩn/xóa/khôi phục báo cáo
+        (isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+        ||
+        // Bình chọn (VoteRepository): chỉ đổi số vote, mỗi số tối đa 1 đơn vị,
+        // và status chỉ được chuyển sang Hidden (tự ẩn)
+        (!isBanned()
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['upCount', 'downCount', 'status'])
+          && request.resource.data.get('upCount', 0) >= 0
+          && request.resource.data.get('downCount', 0) >= 0
+          && math.abs(request.resource.data.get('upCount', 0) - resource.data.get('upCount', 0)) <= 1
+          && math.abs(request.resource.data.get('downCount', 0) - resource.data.get('downCount', 0)) <= 1
+          && (request.resource.data.status == resource.data.status
+              || request.resource.data.status == 'Hidden'))
+      );
+
+      allow delete: if false;
+    }
+
+    // ---------- votes ({reportId}_{uid}) ----------
+    match /votes/{voteId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && !isBanned()
+        && request.resource.data.userId == request.auth.uid
+        && voteId == request.resource.data.reportId + '_' + request.auth.uid
+        && request.resource.data.voteValue in [1, -1];
+
+      // Đổi chiều vote: giữ nguyên chủ vote
+      allow update: if isSignedIn()
+        && !isBanned()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.voteValue in [1, -1];
+
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ---------- banned_users (chỉ admin) ----------
+    match /banned_users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ---------- app_settings (đọc công khai, chỉ admin sửa) ----------
+    match /app_settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------- Bản nháp cho tuần 3: chỉnh lại khi code ghi các collection này ----------
+    match /reminders/{reminderId} {
+      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create, update: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /moderation_logs/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // Dòng log do người vote ghi cho người đăng báo cáo (cùng transaction với việc đổi điểm)
+    match /reputation_logs/{logId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && !isBanned()
+        && request.resource.data.userId != request.auth.uid
+        && request.resource.data.keys().hasOnly(['userId', 'reportId', 'delta', 'reason', 'createdAt'])
+        && request.resource.data.delta is int
+        && math.abs(request.resource.data.delta) <= 10;
+      allow update, delete: if false;
+    }
+  }
+}
