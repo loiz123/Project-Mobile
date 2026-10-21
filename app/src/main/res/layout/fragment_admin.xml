@@ -11,16 +11,29 @@
         android:id="@+id/tvAdminTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="16dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="8dp"
         android:paddingTop="16dp"
-        android:paddingBottom="8dp"
+        android:paddingBottom="4dp"
         android:text="Kiểm duyệt báo cáo"
         android:textColor="@android:color/black"
         android:textSize="22sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btnViewBannedUsers"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnViewBannedUsers"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:text="Bị khóa"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="@id/tvAdminTitle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/tvAdminTitle" />
 
     <TextView
         android:id="@+id/tvAdminSubtitle"
@@ -28,7 +41,7 @@
         android:layout_height="wrap_content"
         android:paddingHorizontal="16dp"
         android:paddingBottom="12dp"
-        android:text="← Vuốt trái để Ẩn | Vuốt phải để Khôi phục →"
+        android:text="← Vuốt trái: Ẩn | Vuốt phải: Khôi phục →"
         android:textColor="@android:color/darker_gray"
         android:textSize="13sp"
         app:layout_constraintEnd_toEndOf="parent"
