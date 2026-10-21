@@ -1,6 +1,8 @@
 package com.phatvv9.wwarning.data.remote;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -29,6 +31,10 @@ public class CategoryRepository {
     private static final String TAG = "CategoryRepository";
     private static final String COLLECTION_CATEGORIES = "categories";
 
+    public interface CategoryCallback {
+        void onCategoriesLoaded(List<Category> categories);
+    }
+
     private final FirebaseFirestore db;
     private final CategoryDao categoryDao;
     private final Executor executor;
@@ -50,6 +56,33 @@ public class CategoryRepository {
 
     public LiveData<List<Category>> getCategories() {
         return categoriesLiveData;
+    }
+
+    public void getCategoriesAsync(final CategoryCallback callback) {
+        if (callback == null) return;
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                List<CategoryEntity> cachedEntities = categoryDao.getAllCategoriesSync();
+                final List<Category> result = new ArrayList<>();
+                if (cachedEntities != null) {
+                    for (CategoryEntity entity : cachedEntities) {
+                        Category cat = new Category(entity.getName(), entity.getIconUrl(), entity.isRisk(), entity.isActive());
+                        cat.setId(entity.getId());
+                        result.add(cat);
+                    }
+                }
+                if (result.isEmpty() && categoriesLiveData.getValue() != null) {
+                    result.addAll(categoriesLiveData.getValue());
+                }
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onCategoriesLoaded(result);
+                    }
+                });
+            }
+        });
     }
 
     private void loadCategoriesFromRoomFirst() {
