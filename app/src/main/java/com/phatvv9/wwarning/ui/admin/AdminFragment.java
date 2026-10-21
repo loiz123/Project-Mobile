@@ -17,11 +17,14 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.phatvv9.wwarning.R;
+import com.phatvv9.wwarning.data.remote.AdminRepository;
 import com.phatvv9.wwarning.data.remote.ModerationRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
+import com.phatvv9.wwarning.model.BannedUser;
 import com.phatvv9.wwarning.model.Report;
 import com.phatvv9.wwarning.model.UserProfile;
 import com.phatvv9.wwarning.ui.report.ReportDetailSheet;
@@ -31,16 +34,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Màn Admin: danh sách báo cáo bị báo sai nhiều.
+ * Màn Admin: danh sách báo cáo bị báo sai nhiều và quản lý danh sách tài khoản bị khóa.
  * Vuốt trái = ẩn, vuốt phải = khôi phục, nhấn giữ = xóa, chạm = xem chi tiết.
- * Mỗi thao tác ghi một dòng moderation_logs.
  */
 public class AdminFragment extends Fragment {
 
     private RecyclerView rvReports;
     private TextView tvMessage;
+    private MaterialButton btnViewBannedUsers;
     private AdminReportAdapter adapter;
     private final ModerationRepository moderationRepository = new ModerationRepository();
+    private final AdminRepository adminRepository = new AdminRepository();
     private boolean listening = false;
 
     @Nullable
@@ -56,6 +60,14 @@ public class AdminFragment extends Fragment {
 
         rvReports = view.findViewById(R.id.rvAdminReports);
         tvMessage = view.findViewById(R.id.tvAdminMessage);
+        btnViewBannedUsers = view.findViewById(R.id.btnViewBannedUsers);
+
+        btnViewBannedUsers.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showBannedUsersDialog();
+            }
+        });
 
         adapter = new AdminReportAdapter(new AdminReportAdapter.Listener() {
             @Override
@@ -79,8 +91,10 @@ public class AdminFragment extends Fragment {
                     @Override
                     public void onChanged(UserProfile profile) {
                         if (profile != null && profile.isAdmin()) {
+                            btnViewBannedUsers.setVisibility(View.VISIBLE);
                             startListening();
                         } else {
+                            btnViewBannedUsers.setVisibility(View.GONE);
                             stopListening();
                             adapter.setReports(new ArrayList<Report>());
                             showMessage(profile == null
@@ -89,6 +103,75 @@ public class AdminFragment extends Fragment {
                         }
                     }
                 });
+    }
+
+    /**
+     * Hiển thị Dialog danh sách tài khoản bị cấm (Banned Users) kèm chức năng bỏ khóa
+     */
+    private void showBannedUsersDialog() {
+        adminRepository.getBannedUsers(new AdminRepository.BannedUsersCallback() {
+            @Override
+            public void onSuccess(@NonNull final List<BannedUser> bannedUsers) {
+                if (!isAdded()) return;
+
+                if (bannedUsers.isEmpty()) {
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("Danh sách bị khóa")
+                            .setMessage("Hiện không có tài khoản nào bị khóa.")
+                            .setPositiveButton("Đóng", null)
+                            .show();
+                    return;
+                }
+
+                String[] items = new String[bannedUsers.size()];
+                for (int i = 0; i < bannedUsers.size(); i++) {
+                    BannedUser b = bannedUsers.get(i);
+                    String reason = b.getReason() != null ? b.getReason() : "Vi phạm quy tắc";
+                    items[i] = "UID: " + b.getUserId() + "\nLý do: " + reason;
+                }
+
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("Tài khoản bị khóa (" + bannedUsers.size() + ")")
+                        .setItems(items, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                final BannedUser selectedUser = bannedUsers.get(which);
+                                confirmUnbanUser(selectedUser.getUserId());
+                            }
+                        })
+                        .setPositiveButton("Đóng", null)
+                        .show();
+            }
+
+            @Override
+            public void onError(String error) {
+                toast("Lỗi tải danh sách khóa: " + error);
+            }
+        });
+    }
+
+    private void confirmUnbanUser(final String userId) {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Bỏ khóa tài khoản?")
+                .setMessage("Bạn có chắc muốn mở khóa cho tài khoản: " + userId + "?")
+                .setPositiveButton("Mở khóa", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        adminRepository.unbanUser(userId, new AdminRepository.AdminCallback() {
+                            @Override
+                            public void onSuccess() {
+                                toast("Đã mở khóa thành công!");
+                            }
+
+                            @Override
+                            public void onError(String error) {
+                                toast("Lỗi khi mở khóa: " + error);
+                            }
+                        });
+                    }
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
     }
 
     private void attachSwipe() {
@@ -103,10 +186,9 @@ public class AdminFragment extends Fragment {
 
                     @Override
                     public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                        int position = viewHolder.getAdapterPosition();
+                        int position = viewHolder.getBindingAdapterPosition();
                         if (position == RecyclerView.NO_POSITION) return;
                         Report report = adapter.getReportAt(position);
-                        // Đưa dòng về chỗ cũ; danh sách tự cập nhật khi Firestore trả kết quả mới
                         adapter.notifyItemChanged(position);
                         if (report == null) return;
 

@@ -6,9 +6,11 @@ import androidx.annotation.Nullable;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.WriteBatch;
 import com.phatvv9.wwarning.model.BannedUser;
 
 import java.util.ArrayList;
@@ -28,21 +30,25 @@ public class AdminRepository {
     }
 
     /**
-     * Khóa tài khoản người dùng: ghi vào collection banned_users và đổi status users thành Banned
+     * Khóa tài khoản: Dùng WriteBatch để vừa ghi vào banned_users, vừa đổi status users thành "Banned"
      */
     public void banUser(final String userId, String adminId, String reason, @Nullable final AdminCallback callback) {
+        DocumentReference banRef = db.collection("banned_users").document(userId);
+        DocumentReference userRef = db.collection("users").document(userId);
+
         Map<String, Object> banData = new HashMap<>();
         banData.put("userId", userId);
         banData.put("bannedBy", adminId);
         banData.put("reason", reason);
         banData.put("bannedAt", Timestamp.now());
 
-        db.collection("banned_users").document(userId)
-                .set(banData)
+        WriteBatch batch = db.batch();
+        batch.set(banRef, banData);
+        batch.update(userRef, "status", "Banned");
+        batch.commit()
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
-                    public void onSuccess(Void aVoid) {
-                        db.collection("users").document(userId).update("status", "Banned");
+                    public void onSuccess(Void unused) {
                         if (callback != null) callback.onSuccess();
                     }
                 })
@@ -55,15 +61,19 @@ public class AdminRepository {
     }
 
     /**
-     * Mở khóa tài khoản: xóa khỏi banned_users và đổi status users thành Active
+     * Mở khóa tài khoản: Dùng WriteBatch để vừa xóa khỏi banned_users, vừa đổi status users về "Active"
      */
     public void unbanUser(final String userId, @Nullable final AdminCallback callback) {
-        db.collection("banned_users").document(userId)
-                .delete()
+        DocumentReference banRef = db.collection("banned_users").document(userId);
+        DocumentReference userRef = db.collection("users").document(userId);
+
+        WriteBatch batch = db.batch();
+        batch.delete(banRef);
+        batch.update(userRef, "status", "Active");
+        batch.commit()
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
-                    public void onSuccess(Void aVoid) {
-                        db.collection("users").document(userId).update("status", "Active");
+                    public void onSuccess(Void unused) {
                         if (callback != null) callback.onSuccess();
                     }
                 })
@@ -76,7 +86,7 @@ public class AdminRepository {
     }
 
     /**
-     * Lấy danh sách toàn bộ người dùng đang bị khóa
+     * Lấy danh sách toàn bộ người dùng đang bị khóa tài khoản
      */
     public void getBannedUsers(@NonNull final BannedUsersCallback callback) {
         db.collection("banned_users")
