@@ -138,7 +138,8 @@ public class UserRepository {
             return name;
         }
         String uid = user.getUid();
-        return "Người dùng " + uid.substring(0, Math.min(4, uid.length()));
+        String suffix = uid.length() >= 4 ? uid.substring(uid.length() - 4) : uid;
+        return "Khách " + suffix;
     }
 
     /** Ghi/cập nhật thiết bị hiện tại: user_devices/{uid}_{deviceId}. Lỗi chỉ log, không chặn app. */

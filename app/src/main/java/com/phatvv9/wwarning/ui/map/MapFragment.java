@@ -18,6 +18,10 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.OnApplyWindowInsetsListener;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 
@@ -64,6 +68,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private boolean isFirstLocationUpdate = true;
     private List<Report> cachedReports;
     private CameraPosition restoredCameraPosition;
+    private int statusBarHeight = 0;
 
     private TextView tvOfflineBanner;
     private ChipGroup chipGroupRiskFilter;
@@ -101,6 +106,17 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         tvOfflineBanner = view.findViewById(R.id.tvOfflineBanner);
         chipGroupRiskFilter = view.findViewById(R.id.chipGroupRiskFilter);
+
+        ViewCompat.setOnApplyWindowInsetsListener(view, new OnApplyWindowInsetsListener() {
+            @NonNull
+            @Override
+            public WindowInsetsCompat onApplyWindowInsets(@NonNull View v, @NonNull WindowInsetsCompat insets) {
+                Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                statusBarHeight = systemBars.top;
+                applyMapPadding();
+                return insets;
+            }
+        });
 
         reportRepository = new ReportRepository(requireContext());
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
@@ -177,6 +193,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
+        applyMapPadding();
 
         if (restoredCameraPosition != null) {
             mMap.moveCamera(CameraUpdateFactory.newCameraPosition(restoredCameraPosition));
@@ -198,6 +215,21 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         checkLocationPermission();
         if (cachedReports != null) {
             renderReportMarkers(cachedReports);
+        }
+    }
+
+    private void applyMapPadding() {
+        if (mMap == null) return;
+        int topPadding = statusBarHeight;
+        if (topPadding <= 0 && isAdded()) {
+            int resId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+            if (resId > 0) {
+                topPadding = getResources().getDimensionPixelSize(resId);
+            }
+        }
+        if (topPadding > 0 && isAdded()) {
+            int extraMargin = (int) (12 * getResources().getDisplayMetrics().density);
+            mMap.setPadding(0, topPadding + extraMargin, 0, 0);
         }
     }
 
