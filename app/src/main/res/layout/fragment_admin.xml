@@ -65,7 +65,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Đang kiểm tra quyền admin..."
-        android:textColor="@android:color/dimgray"
+        android:textColor="@android:color/darker_gray"
         android:textSize="15sp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
