@@ -11,11 +11,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.OnApplyWindowInsetsListener;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 
@@ -59,11 +64,15 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private boolean isFirstLocationUpdate = true;
     private List<Report> cachedReports;
     private CameraPosition restoredCameraPosition;
+    private int statusBarHeight = 0;
 
     private final ActivityResultLauncher<String> requestPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                if (isGranted) {
-                    enableMyLocation();
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), new ActivityResultCallback<Boolean>() {
+                @Override
+                public void onActivityResult(Boolean isGranted) {
+                    if (Boolean.TRUE.equals(isGranted)) {
+                        enableMyLocation();
+                    }
                 }
             });
 
@@ -86,6 +95,17 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_map, container, false);
+
+        ViewCompat.setOnApplyWindowInsetsListener(view, new OnApplyWindowInsetsListener() {
+            @NonNull
+            @Override
+            public WindowInsetsCompat onApplyWindowInsets(@NonNull View v, @NonNull WindowInsetsCompat insets) {
+                Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                statusBarHeight = systemBars.top;
+                applyMapPadding();
+                return insets;
+            }
+        });
 
         reportRepository = new ReportRepository();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
@@ -139,6 +159,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
+        applyMapPadding();
 
         if (restoredCameraPosition != null) {
             mMap.moveCamera(CameraUpdateFactory.newCameraPosition(restoredCameraPosition));
@@ -160,6 +181,21 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         checkLocationPermission();
         if (cachedReports != null) {
             renderReportMarkers(cachedReports);
+        }
+    }
+
+    private void applyMapPadding() {
+        if (mMap == null) return;
+        int topPadding = statusBarHeight;
+        if (topPadding <= 0 && isAdded()) {
+            int resId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+            if (resId > 0) {
+                topPadding = getResources().getDimensionPixelSize(resId);
+            }
+        }
+        if (topPadding > 0 && isAdded()) {
+            int extraMargin = (int) (12 * getResources().getDisplayMetrics().density);
+            mMap.setPadding(0, topPadding + extraMargin, 0, 0);
         }
     }
 
