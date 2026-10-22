@@ -13,6 +13,7 @@ import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.CategoryRepository;
 import com.phatvv9.wwarning.data.remote.ReportRepository;
 import com.phatvv9.wwarning.model.Category;
+import com.phatvv9.wwarning.worker.ReminderScheduler;
 
 import java.util.HashMap;
 import java.util.List;
@@ -117,6 +118,8 @@ public class QuickReportDialog extends Dialog {
         repository.createReport(resolvedId, lat, lng, new ReportRepository.ReportCallback() {
             @Override
             public void onSuccess(@NonNull String reportId) {
+                ReminderScheduler.requestNotificationPermissionIfNeeded(getContext());
+                ReminderScheduler.schedule(getContext(), reportId);
                 Toast.makeText(getContext(), "Đã gửi cảnh báo thời tiết thành công!", Toast.LENGTH_SHORT).show();
             }
 
