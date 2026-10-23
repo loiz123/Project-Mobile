@@ -1,5 +1,6 @@
 package com.phatvv9.wwarning.ui.report;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
@@ -11,6 +12,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -52,6 +54,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
     private TextView tvDownvoteCount;
     private Button btnUpvote;
     private Button btnDownvote;
+    private Button btnDeleteMyReport;
 
     private final VoteRepository voteRepository = new VoteRepository();
 
@@ -105,6 +108,25 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         tvDownvoteCount = view.findViewById(R.id.tvDownvoteCount);
         btnUpvote = view.findViewById(R.id.btnUpvote);
         btnDownvote = view.findViewById(R.id.btnDownvote);
+        btnDeleteMyReport = view.findViewById(R.id.btnDeleteMyReport);
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        boolean isMyReport = currentUser != null && authorId != null && authorId.equals(currentUser.getUid());
+        UserProfile currentProfile = UserRepository.getInstance().getCurrentProfile().getValue();
+        boolean isAdmin = currentProfile != null && currentProfile.isAdmin();
+
+        if (isMyReport || isAdmin) {
+            btnDeleteMyReport.setVisibility(View.VISIBLE);
+            btnDeleteMyReport.setText(isMyReport ? "🗑️ Xóa báo cáo của tôi" : "🗑️ Xóa báo cáo (Quyền Admin)");
+            btnDeleteMyReport.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    confirmDeleteReport();
+                }
+            });
+        } else {
+            btnDeleteMyReport.setVisibility(View.GONE);
+        }
 
         tvCategory.setText(MapFragment.getCategoryDisplayName(categoryId));
         tvSeverity.setText("Mức độ: Không rõ");
@@ -227,6 +249,49 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
                     public void onFailure(@NonNull Exception e) {
                         if (!isAdded()) return;
                         setButtonsEnabled(true);
+                    }
+                });
+    }
+
+    private void confirmDeleteReport() {
+        if (!isAdded() || reportId == null) return;
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Xóa báo cáo")
+                .setMessage("Bạn có chắc chắn muốn xóa cảnh báo này khỏi bản đồ?")
+                .setPositiveButton("Xóa", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        deleteReport();
+                    }
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void deleteReport() {
+        if (reportId == null) return;
+        setButtonsEnabled(false);
+        if (btnDeleteMyReport != null) btnDeleteMyReport.setEnabled(false);
+
+        FirebaseFirestore.getInstance().collection("reports").document(reportId)
+                .update("status", "Deleted")
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(), "Đã xóa báo cáo thành công", Toast.LENGTH_SHORT).show();
+                            dismiss();
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        if (isAdded()) {
+                            setButtonsEnabled(true);
+                            if (btnDeleteMyReport != null) btnDeleteMyReport.setEnabled(true);
+                            Toast.makeText(requireContext(), "Lỗi khi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
                     }
                 });
     }

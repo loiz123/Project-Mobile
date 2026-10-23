@@ -115,6 +115,26 @@ public final class ReminderScheduler {
                 .edit().putString(KEY_ACTIVE_REMINDER_ID, ref.getId()).apply();
     }
 
+    /** Phục vụ demo/chấm điểm nhanh: bắn notification sau số giây chỉ định (ví dụ 5 giây). */
+    public static void scheduleTestReminder(@NonNull Context context, int seconds) {
+        final Context appContext = context.getApplicationContext();
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        String uid = user != null ? user.getUid() : "demo_user";
+
+        Data input = new Data.Builder()
+                .putString(WeatherReminderWorker.KEY_USER_ID, uid)
+                .putInt(WeatherReminderWorker.KEY_MINUTES, 1)
+                .build();
+
+        OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(WeatherReminderWorker.class)
+                .setInitialDelay(seconds, TimeUnit.SECONDS)
+                .setInputData(input)
+                .build();
+
+        WorkManager.getInstance(appContext)
+                .enqueueUniqueWork("test_reminder_" + uid, ExistingWorkPolicy.REPLACE, request);
+    }
+
     /** Hủy bộ đếm đang chạy (nếu có): hủy WorkRequest, đặt reminders.status = Cancelled, xóa thông báo. */
     public static void cancelActive(@NonNull Context context) {
         Context appContext = context.getApplicationContext();

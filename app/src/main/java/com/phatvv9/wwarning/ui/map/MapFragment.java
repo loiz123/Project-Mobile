@@ -113,6 +113,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             public WindowInsetsCompat onApplyWindowInsets(@NonNull View v, @NonNull WindowInsetsCompat insets) {
                 Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
                 statusBarHeight = systemBars.top;
+                updateHeaderInsets(v);
                 applyMapPadding();
                 return insets;
             }
@@ -149,6 +150,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             public void onChanged(Boolean isOnline) {
                 if (tvOfflineBanner != null) {
                     tvOfflineBanner.setVisibility(Boolean.TRUE.equals(isOnline) ? View.GONE : View.VISIBLE);
+                    updateHeaderInsets(getView());
+                    applyMapPadding();
                 }
             }
         });
@@ -218,19 +221,41 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+    private void updateHeaderInsets(@Nullable View v) {
+        if (v == null || !isAdded()) return;
+        int topOffset = statusBarHeight > 0 ? statusBarHeight : (int) (24 * getResources().getDisplayMetrics().density);
+        View banner = v.findViewById(R.id.tvOfflineBanner);
+        View riskFilter = v.findViewById(R.id.svRiskFilter);
+
+        if (banner != null) {
+            banner.setPadding(banner.getPaddingLeft(), topOffset, banner.getPaddingRight(), (int) (8 * getResources().getDisplayMetrics().density));
+        }
+        if (riskFilter != null) {
+            ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) riskFilter.getLayoutParams();
+            if (banner != null && banner.getVisibility() == View.VISIBLE) {
+                lp.topMargin = (int) (8 * getResources().getDisplayMetrics().density);
+            } else {
+                lp.topMargin = topOffset + (int) (8 * getResources().getDisplayMetrics().density);
+            }
+            riskFilter.setLayoutParams(lp);
+        }
+    }
+
     private void applyMapPadding() {
-        if (mMap == null) return;
+        if (mMap == null || !isAdded()) return;
         int topPadding = statusBarHeight;
-        if (topPadding <= 0 && isAdded()) {
+        if (topPadding <= 0) {
             int resId = getResources().getIdentifier("status_bar_height", "dimen", "android");
             if (resId > 0) {
                 topPadding = getResources().getDimensionPixelSize(resId);
             }
         }
-        if (topPadding > 0 && isAdded()) {
-            int extraMargin = (int) (12 * getResources().getDisplayMetrics().density);
-            mMap.setPadding(0, topPadding + extraMargin, 0, 0);
-        }
+        View riskFilter = getView() != null ? getView().findViewById(R.id.svRiskFilter) : null;
+        int filterHeight = (riskFilter != null && riskFilter.getHeight() > 0)
+                ? riskFilter.getHeight()
+                : (int) (48 * getResources().getDisplayMetrics().density);
+        int totalTop = topPadding + filterHeight + (int) (16 * getResources().getDisplayMetrics().density);
+        mMap.setPadding(0, totalTop, 0, 0);
     }
 
     private void renderReportMarkers(@NonNull List<Report> reports) {
@@ -239,6 +264,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         long now = System.currentTimeMillis();
         int fadeMinutes = SettingsRepository.getInstance().getFadeMinutes();
+        int renderedCount = 0;
 
         for (Report report : reports) {
             // Lọc bỏ báo cáo đã quá hạn hoặc không còn Active
@@ -285,6 +311,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
             Marker marker = mMap.addMarker(options);
             if (marker != null) marker.setTag(report);
+            renderedCount++;
+        }
+
+        if (isRiskFilterActive && renderedCount == 0 && isAdded() && getContext() != null) {
+            Toast.makeText(getContext(), "Khu vực quanh bạn an toàn, không có rủi ro nào", Toast.LENGTH_SHORT).show();
         }
     }
 
