@@ -14,8 +14,21 @@ import java.util.concurrent.Executors;
 
 public class ReportLocalCache {
 
+    private static volatile ReportLocalCache INSTANCE;
+
     private final ReportDao reportDao;
     private final Executor executor;
+
+    public static ReportLocalCache getInstance(Context context) {
+        if (INSTANCE == null) {
+            synchronized (ReportLocalCache.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new ReportLocalCache(context.getApplicationContext());
+                }
+            }
+        }
+        return INSTANCE;
+    }
 
     public ReportLocalCache(Context context) {
         this.reportDao = AppDatabase.getInstance(context).reportDao();
@@ -45,6 +58,11 @@ public class ReportLocalCache {
         });
 
         return result;
+    }
+
+    public List<Report> getCachedReportsSync() {
+        List<ReportEntity> entities = reportDao.getAllReportsSync();
+        return ReportMapper.toDomainList(entities);
     }
 
     public void cleanExpiredReports(final long currentTimeMs) {
