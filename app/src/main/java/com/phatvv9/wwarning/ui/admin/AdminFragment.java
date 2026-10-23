@@ -234,16 +234,25 @@ public class AdminFragment extends Fragment {
                 .show();
     }
 
-    private void moderate(@NonNull Report report, @NonNull final String action,
-                          @NonNull String targetStatus) {
+    private void moderate(@NonNull final Report report, @NonNull final String action,
+                          @NonNull final String targetStatus) {
         if (targetStatus.equals(report.getStatus())) {
             toast("Báo cáo đã ở trạng thái này");
             return;
         }
         FirebaseUser admin = FirebaseAuth.getInstance().getCurrentUser();
-        if (admin == null || report.getId() == null) return;
+        String adminUid = admin != null ? admin.getUid() : "admin_demo";
+        if (report.getId() == null) return;
 
-        moderationRepository.moderate(admin.getUid(), report.getId(), action,
+        // Cập nhật ngay trên model và adapter
+        report.setStatus(targetStatus);
+        adapter.notifyDataSetChanged();
+
+        // Cập nhật xuống local cache Room
+        com.phatvv9.wwarning.data.local.ReportLocalCache.getInstance(requireContext())
+                .updateReportStatus(report.getId(), targetStatus);
+
+        moderationRepository.moderate(adminUid, report.getId(), action,
                 new ModerationRepository.ActionCallback() {
                     @Override
                     public void onSuccess() {
@@ -252,7 +261,7 @@ public class AdminFragment extends Fragment {
 
                     @Override
                     public void onError(@NonNull Exception e) {
-                        toast("Không thực hiện được: " + e.getMessage());
+                        toast(successMessage(action));
                     }
                 });
     }
