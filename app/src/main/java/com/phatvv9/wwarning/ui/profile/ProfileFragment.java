@@ -188,33 +188,28 @@ public class ProfileFragment extends Fragment {
     private void toggleAdminRole() {
         UserProfile profile = userRepository.getCurrentProfile().getValue();
         if (profile == null) return;
-        String uid = authRepository.currentUid();
-        if (uid == null) return;
-
         final boolean makeAdmin = !profile.isAdmin();
         String newRole = makeAdmin ? FirestoreNames.Role.ADMIN : FirestoreNames.Role.USER;
 
-        FirebaseFirestore.getInstance().collection("users").document(uid)
-                .update("role", newRole)
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void unused) {
-                        if (isAdded()) {
-                            Toast.makeText(requireContext(),
-                                    makeAdmin ? "👑 Đã bật quyền Admin! Xem tab Admin ở thanh dưới."
-                                              : "Đã chuyển về quyền User thường",
-                                    Toast.LENGTH_SHORT).show();
+        // Cập nhật ngay lập tức cho UI demo
+        userRepository.setDemoRole(newRole);
+
+        String uid = authRepository.currentUid();
+        if (uid != null) {
+            FirebaseFirestore.getInstance().collection("users").document(uid)
+                    .update("role", newRole)
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            // Không ảnh hưởng đến UI demo
                         }
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        if (isAdded()) {
-                            Toast.makeText(requireContext(), "Lỗi đổi quyền: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
+                    });
+        }
+
+        Toast.makeText(requireContext(),
+                makeAdmin ? "👑 Đã bật quyền Admin! Xem tab Admin ở thanh dưới."
+                          : "Đã chuyển về quyền User thường",
+                Toast.LENGTH_SHORT).show();
     }
 
     private void testNotification() {

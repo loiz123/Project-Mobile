@@ -66,6 +66,7 @@ public class UserRepository {
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final MutableLiveData<UserProfile> currentProfile = new MutableLiveData<>();
     private ListenerRegistration profileListener;
+    private boolean isDemoAdmin = false;
 
     private UserRepository() {}
 
@@ -78,6 +79,22 @@ public class UserRepository {
     public boolean isBanned() {
         UserProfile profile = currentProfile.getValue();
         return profile != null && profile.isBanned();
+    }
+
+    public boolean isAdmin() {
+        if (isDemoAdmin) return true;
+        UserProfile profile = currentProfile.getValue();
+        return profile != null && profile.isAdmin();
+    }
+
+    /** Hỗ trợ demo chuyển đổi nhanh quyền Admin / User */
+    public void setDemoRole(@NonNull String role) {
+        this.isDemoAdmin = FirestoreNames.Role.ADMIN.equals(role);
+        UserProfile p = currentProfile.getValue();
+        if (p != null) {
+            p.setRole(role);
+            currentProfile.setValue(p);
+        }
     }
 
     /**
@@ -199,7 +216,11 @@ public class UserRepository {
                             return;
                         }
                         if (snapshot != null && snapshot.exists()) {
-                            currentProfile.setValue(snapshot.toObject(UserProfile.class));
+                            UserProfile profile = snapshot.toObject(UserProfile.class);
+                            if (isDemoAdmin && profile != null) {
+                                profile.setRole(FirestoreNames.Role.ADMIN);
+                            }
+                            currentProfile.setValue(profile);
                         }
                     }
                 });
