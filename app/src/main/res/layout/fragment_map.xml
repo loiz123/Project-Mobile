@@ -4,6 +4,18 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- Bản đồ tràn toàn màn hình làm nền -->
+    <fragment
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Thanh điều khiển nổi phía trên (Transparent Header) -->
     <LinearLayout
         android:id="@+id/topBarContainer"
         android:layout_width="0dp"
@@ -26,14 +38,70 @@
             android:textStyle="bold"
             android:visibility="gone" />
 
+        <!-- Thanh tìm kiếm địa điểm phong cách Google Maps -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardSearchBar"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginStart="14dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="14dp"
+            app:cardBackgroundColor="@android:color/white"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="6dp"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingEnd="12dp">
+
+                <ImageView
+                    android:id="@+id/ivSearchIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="Tìm kiếm"
+                    android:src="@android:drawable/ic_menu_search"
+                    app:tint="#616161" />
+
+                <EditText
+                    android:id="@+id/etSearchLocation"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="Tìm địa điểm, địa chỉ..."
+                    android:imeOptions="actionSearch"
+                    android:inputType="textPostalAddress"
+                    android:maxLines="1"
+                    android:textColor="#212121"
+                    android:textColorHint="#9E9E9E"
+                    android:textSize="14sp" />
+
+                <ImageView
+                    android:id="@+id/btnClearSearch"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:contentDescription="Xóa tìm kiếm"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:visibility="gone"
+                    app:tint="#757575" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Bộ lọc rủi ro nổi dưới thanh tìm kiếm -->
         <HorizontalScrollView
             android:id="@+id/svRiskFilter"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginStart="14dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="14dp"
+            android:layout_marginBottom="4dp"
             android:scrollbars="none">
 
             <com.google.android.material.chip.ChipGroup
@@ -61,16 +129,6 @@
             </com.google.android.material.chip.ChipGroup>
         </HorizontalScrollView>
     </LinearLayout>
-
-    <fragment
-        android:id="@+id/map"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topBarContainer" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabQuickReport"

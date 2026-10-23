@@ -3,14 +3,28 @@ package com.phatvv9.wwarning.ui.map;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
+import android.content.Context;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.Locale;
+import java.util.concurrent.Executors;
 
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -74,6 +88,10 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private ChipGroup chipGroupRiskFilter;
     private boolean isRiskFilterActive = false;
 
+    private EditText etSearchLocation;
+    private ImageView btnClearSearch;
+    private Marker searchLocationMarker;
+
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), new ActivityResultCallback<Boolean>() {
                 @Override
@@ -106,6 +124,60 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         tvOfflineBanner = view.findViewById(R.id.tvOfflineBanner);
         chipGroupRiskFilter = view.findViewById(R.id.chipGroupRiskFilter);
+        etSearchLocation = view.findViewById(R.id.etSearchLocation);
+        btnClearSearch = view.findViewById(R.id.btnClearSearch);
+        ImageView ivSearchIcon = view.findViewById(R.id.ivSearchIcon);
+
+        if (etSearchLocation != null) {
+            etSearchLocation.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                @Override
+                public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                    if (actionId == EditorInfo.IME_ACTION_SEARCH
+                            || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                        performSearch(v.getText().toString().trim());
+                        hideKeyboard(v);
+                        return true;
+                    }
+                    return false;
+                }
+            });
+
+            etSearchLocation.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    if (btnClearSearch != null) {
+                        btnClearSearch.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
+                    }
+                }
+                @Override
+                public void afterTextChanged(Editable s) {}
+            });
+        }
+
+        if (btnClearSearch != null) {
+            btnClearSearch.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (etSearchLocation != null) {
+                        etSearchLocation.setText("");
+                    }
+                }
+            });
+        }
+
+        if (ivSearchIcon != null) {
+            ivSearchIcon.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (etSearchLocation != null) {
+                        performSearch(etSearchLocation.getText().toString().trim());
+                        hideKeyboard(etSearchLocation);
+                    }
+                }
+            });
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(view, new OnApplyWindowInsetsListener() {
             @NonNull
@@ -228,36 +300,122 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    private void updateHeaderInsets(@Nullable View v) {
+    private void updateHeaderInsets(@Nullable final View v) {
         if (v == null || !isAdded()) return;
-        View topContainer = v.findViewById(R.id.topBarContainer);
+        final View topContainer = v.findViewById(R.id.topBarContainer);
         if (topContainer == null) return;
 
-        int top = statusBarHeight;
-        if (top <= 0) {
-            WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(v);
-            if (rootInsets != null) {
-                top = rootInsets.getInsets(
-                        WindowInsetsCompat.Type.statusBars() | WindowInsetsCompat.Type.displayCutout()).top;
-            }
-        }
-        if (top <= 0) {
-            int resId = getResources().getIdentifier("status_bar_height", "dimen", "android");
-            if (resId > 0) {
-                top = getResources().getDimensionPixelSize(resId);
-            }
-        }
-        if (top <= 0) {
-            top = (int) (32 * getResources().getDisplayMetrics().density);
-        }
+        topContainer.post(new Runnable() {
+            @Override
+            public void run() {
+                if (!isAdded()) return;
+                int topBarHeight = statusBarHeight;
+                if (topBarHeight <= 0) {
+                    WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(v);
+                    if (rootInsets != null) {
+                        topBarHeight = rootInsets.getInsets(
+                                WindowInsetsCompat.Type.statusBars() | WindowInsetsCompat.Type.displayCutout()).top;
+                    }
+                }
+                if (topBarHeight <= 0) {
+                    int resId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+                    if (resId > 0) {
+                        topBarHeight = getResources().getDimensionPixelSize(resId);
+                    }
+                }
 
-        topContainer.setPadding(0, top, 0, 0);
+                int[] loc = new int[2];
+                topContainer.getLocationOnScreen(loc);
+                int screenY = loc[1]; // Vị trí Y thực tế trên màn hình
+                int extraSpace = (int) (12 * getResources().getDisplayMetrics().density);
+                int neededPadding = Math.max(0, topBarHeight - screenY) + extraSpace;
+
+                topContainer.setPadding(0, neededPadding, 0, 0);
+                applyMapPadding();
+            }
+        });
     }
 
     private void applyMapPadding() {
         if (mMap == null || !isAdded()) return;
-        // Bản đồ đã nằm dưới topBarContainer nên không bị che khuất
-        mMap.setPadding(0, 0, 0, 0);
+        View view = getView();
+        View topContainer = view != null ? view.findViewById(R.id.topBarContainer) : null;
+        int topPadding = (topContainer != null && topContainer.getHeight() > 0) ? topContainer.getHeight() : 0;
+        int extra = (int) (8 * getResources().getDisplayMetrics().density);
+        mMap.setPadding(0, topPadding + extra, 0, 0);
+    }
+
+    private void performSearch(@NonNull final String query) {
+        if (query.isEmpty()) {
+            Toast.makeText(requireContext(), "Vui lòng nhập địa điểm cần tìm", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Toast.makeText(requireContext(), "Đang tìm kiếm: " + query + "...", Toast.LENGTH_SHORT).show();
+
+        Executors.newSingleThreadExecutor().execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Geocoder geocoder = new Geocoder(requireContext(), Locale.getDefault());
+                    List<Address> addresses = geocoder.getFromLocationName(query, 1);
+                    if (addresses != null && !addresses.isEmpty()) {
+                        final Address address = addresses.get(0);
+                        final LatLng target = new LatLng(address.getLatitude(), address.getLongitude());
+                        final String displayName = address.getAddressLine(0) != null ? address.getAddressLine(0) : query;
+
+                        new Handler(Looper.getMainLooper()).post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (mMap != null && isAdded()) {
+                                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 15f));
+                                    reportRepository.setLocation(target.latitude, target.longitude);
+
+                                    if (searchLocationMarker != null) {
+                                        searchLocationMarker.remove();
+                                    }
+                                    searchLocationMarker = mMap.addMarker(new MarkerOptions()
+                                            .position(target)
+                                            .title("📍 " + query)
+                                            .snippet(displayName)
+                                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                                    if (searchLocationMarker != null) {
+                                        searchLocationMarker.showInfoWindow();
+                                    }
+
+                                    Toast.makeText(requireContext(), "Đã chuyển đến: " + displayName, Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
+                    } else {
+                        new Handler(Looper.getMainLooper()).post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (isAdded()) {
+                                    Toast.makeText(requireContext(), "Không tìm thấy địa điểm: " + query, Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
+                    }
+                } catch (Exception e) {
+                    new Handler(Looper.getMainLooper()).post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (isAdded()) {
+                                Toast.makeText(requireContext(), "Lỗi tìm kiếm: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    private void hideKeyboard(@Nullable View v) {
+        if (v == null || !isAdded()) return;
+        InputMethodManager imm = (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+        }
     }
 
     private void renderReportMarkers(@NonNull List<Report> reports) {
@@ -463,6 +621,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        etSearchLocation = null;
+        btnClearSearch = null;
+        if (searchLocationMarker != null) {
+            searchLocationMarker.remove();
+            searchLocationMarker = null;
+        }
         if (reportRepository != null) {
             reportRepository.stopListening();
         }
