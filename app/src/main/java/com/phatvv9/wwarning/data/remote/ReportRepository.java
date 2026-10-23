@@ -1,5 +1,6 @@
 package com.phatvv9.wwarning.data.remote;
 
+import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -19,6 +20,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.phatvv9.wwarning.data.local.ReportLocalCache;
 import com.phatvv9.wwarning.model.Report;
 import com.phatvv9.wwarning.util.FirestoreNames;
 import com.phatvv9.wwarning.util.GeoUtils;
@@ -30,13 +32,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 
 public class ReportRepository {
 
     private static final String TAG = "ReportRepository";
     private static final String COLLECTION_REPORTS = FirestoreNames.REPORTS;
     public static final double DEFAULT_RADIUS_KM = 10.0;
-    private static final int DEFAULT_EXPIRE_MINUTES = 60;
     private static final double MIN_MOVE_DISTANCE_REQUERY_METERS = 500.0;
 
     public interface ReportCallback {
@@ -47,6 +49,7 @@ public class ReportRepository {
     private final FirebaseFirestore db;
     private final FirebaseAuth auth;
     private final MutableLiveData<List<Report>> reportsLiveData;
+    private ReportLocalCache localCache;
 
     private ListenerRegistration fallbackListenerRegistration;
     private final List<ListenerRegistration> boundaryListeners = new ArrayList<>();
@@ -57,14 +60,29 @@ public class ReportRepository {
     private double currentRadiusMeters = DEFAULT_RADIUS_KM * 1000.0;
 
     public ReportRepository() {
-        this(FirebaseFirestore.getInstance(), FirebaseAuth.getInstance());
+        this(FirebaseFirestore.getInstance(), FirebaseAuth.getInstance(), null);
+    }
+
+    public ReportRepository(@Nullable Context context) {
+        this(FirebaseFirestore.getInstance(), FirebaseAuth.getInstance(), context);
     }
 
     public ReportRepository(@NonNull FirebaseFirestore db, @NonNull FirebaseAuth auth) {
+        this(db, auth, null);
+    }
+
+    public ReportRepository(@NonNull FirebaseFirestore db, @NonNull FirebaseAuth auth, @Nullable Context context) {
         this.db = db;
         this.auth = auth;
         this.reportsLiveData = new MutableLiveData<>();
+        if (context != null) {
+            this.localCache = ReportLocalCache.getInstance(context);
+        }
         listenToAllActiveReports();
+    }
+
+    public void setContext(@NonNull Context context) {
+        this.localCache = ReportLocalCache.getInstance(context);
     }
 
     @NonNull
@@ -84,7 +102,8 @@ public class ReportRepository {
                     @Override
                     public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
                         if (error != null) {
-                            Log.e(TAG, "Fallback listen failed.", error);
+                            Log.e(TAG, "Fallback listen failed, loading from Room cache.", error);
+                            loadReportsFromRoomCache();
                             return;
                         }
 
@@ -103,6 +122,10 @@ public class ReportRepository {
                         }
                         sortReportsDesc(reports);
                         reportsLiveData.setValue(reports);
+
+                        if (localCache != null && !reports.isEmpty()) {
+                            localCache.saveReportsToRoom(reports);
+                        }
                     }
                 });
     }
@@ -111,7 +134,8 @@ public class ReportRepository {
      * Tuần 3: Truy vấn Geohash phạm vi bán kính 10km quanh toạ độ người dùng.
      */
     public void setLocation(final double lat, final double lng) {
-        setLocation(lat, lng, DEFAULT_RADIUS_KM);
+        double radiusKm = SettingsRepository.getInstance().getSearchRadiusKm();
+        setLocation(lat, lng, radiusKm);
     }
 
     public void setLocation(final double lat, final double lng, double radiusKm) {
@@ -148,6 +172,7 @@ public class ReportRepository {
                         public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
                             if (error != null) {
                                 Log.e(TAG, "Geohash bound listener error at index " + boundIndex, error);
+                                loadReportsFromRoomCache();
                                 return;
                             }
 
@@ -188,6 +213,24 @@ public class ReportRepository {
         List<Report> result = new ArrayList<>(allReports.values());
         sortReportsDesc(result);
         reportsLiveData.setValue(result);
+
+        if (localCache != null && !result.isEmpty()) {
+            localCache.saveReportsToRoom(result);
+        }
+    }
+
+    private void loadReportsFromRoomCache() {
+        if (localCache != null) {
+            Executors.newSingleThreadExecutor().execute(new Runnable() {
+                @Override
+                public void run() {
+                    List<Report> cached = localCache.getCachedReportsSync();
+                    if (cached != null && !cached.isEmpty()) {
+                        reportsLiveData.postValue(cached);
+                    }
+                }
+            });
+        }
     }
 
     private void sortReportsDesc(List<Report> reports) {
@@ -225,8 +268,9 @@ public class ReportRepository {
         String userId = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "anonymous";
         String geohash = GeoUtils.getGeoHash(lat, lng);
 
+        int expireMinutes = SettingsRepository.getInstance().getExpireMinutes();
         long nowMillis = System.currentTimeMillis();
-        Timestamp expiresAt = new Timestamp(new Date(nowMillis + DEFAULT_EXPIRE_MINUTES * 60 * 1000L));
+        Timestamp expiresAt = new Timestamp(new Date(nowMillis + expireMinutes * 60 * 1000L));
 
         Report report = new Report(
                 userId,
