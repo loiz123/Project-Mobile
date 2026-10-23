@@ -77,6 +77,7 @@ public class ReportRepository {
         this.reportsLiveData = new MutableLiveData<>();
         if (context != null) {
             this.localCache = ReportLocalCache.getInstance(context);
+            loadReportsFromRoomCache();
         }
         listenToAllActiveReports();
     }
@@ -211,6 +212,10 @@ public class ReportRepository {
         }
 
         List<Report> result = new ArrayList<>(allReports.values());
+        if (result.isEmpty() && localCache != null) {
+            loadReportsFromRoomCache();
+            return;
+        }
         sortReportsDesc(result);
         reportsLiveData.setValue(result);
 
