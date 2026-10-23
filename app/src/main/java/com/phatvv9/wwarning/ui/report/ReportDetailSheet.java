@@ -113,7 +113,8 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         boolean isMyReport = currentUser != null && authorId != null && authorId.equals(currentUser.getUid());
         UserProfile currentProfile = UserRepository.getInstance().getCurrentProfile().getValue();
-        boolean isAdmin = currentProfile != null && currentProfile.isAdmin();
+        boolean isAdmin = com.phatvv9.wwarning.util.AdminSessionManager.isAdmin(requireContext())
+                || (currentProfile != null && currentProfile.isAdmin());
 
         if (isMyReport || isAdmin) {
             btnDeleteMyReport.setVisibility(View.VISIBLE);
