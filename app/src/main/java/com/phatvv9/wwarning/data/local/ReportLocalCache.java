@@ -65,6 +65,15 @@ public class ReportLocalCache {
         return ReportMapper.toDomainList(entities);
     }
 
+    public void updateReportStatus(final String id, final String status) {
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                reportDao.updateReportStatus(id, status);
+            }
+        });
+    }
+
     public void cleanExpiredReports(final long currentTimeMs) {
         executor.execute(new Runnable() {
             @Override

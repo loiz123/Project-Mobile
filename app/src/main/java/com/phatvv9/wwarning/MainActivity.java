@@ -17,6 +17,7 @@ import com.phatvv9.wwarning.data.remote.AuthRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.databinding.ActivityMainBinding;
 import com.phatvv9.wwarning.model.UserProfile;
+import com.phatvv9.wwarning.util.AdminSessionManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,8 +36,8 @@ public class MainActivity extends AppCompatActivity {
             NavigationUI.setupWithNavController(binding.bottomNavigation, navController);
         }
 
-        // Mặc định ẩn tab Admin; chỉ hiện khi users/{uid}.role == Admin
-        setAdminTabVisible(false);
+        // Mặc định ẩn tab Admin; chỉ hiện khi users/{uid}.role == Admin hoặc đang đăng nhập quyền Admin
+        setAdminTabVisible(AdminSessionManager.isAdmin(this) || UserRepository.getInstance().isAdmin());
         observeProfile();
 
         // Đăng nhập ẩn danh -> đảm bảo có users/{uid} -> ghi thiết bị -> nghe hồ sơ realtime
@@ -74,7 +75,9 @@ public class MainActivity extends AppCompatActivity {
         UserRepository.getInstance().getCurrentProfile().observe(this, new Observer<UserProfile>() {
             @Override
             public void onChanged(UserProfile profile) {
-                setAdminTabVisible(profile != null && profile.isAdmin());
+                setAdminTabVisible(AdminSessionManager.isAdmin(MainActivity.this)
+                        || UserRepository.getInstance().isAdmin()
+                        || (profile != null && profile.isAdmin()));
                 if (profile != null && profile.isBanned() && !bannedDialogShown) {
                     bannedDialogShown = true;
                     showBannedDialog();

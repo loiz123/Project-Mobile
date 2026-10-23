@@ -21,6 +21,9 @@ public interface ReportDao {
     @Query("SELECT * FROM reports WHERE id = :id LIMIT 1")
     ReportEntity getReportById(String id);
 
+    @Query("UPDATE reports SET status = :status WHERE id = :id")
+    void updateReportStatus(String id, String status);
+
     @Query("DELETE FROM reports WHERE expiresAt < :currentTime")
     void deleteOlderThan(long currentTime);
 }

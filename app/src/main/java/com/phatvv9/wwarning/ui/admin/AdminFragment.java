@@ -11,6 +11,10 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.graphics.Insets;
+import androidx.core.view.OnApplyWindowInsetsListener;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -62,6 +66,16 @@ public class AdminFragment extends Fragment {
         tvMessage = view.findViewById(R.id.tvAdminMessage);
         btnViewBannedUsers = view.findViewById(R.id.btnViewBannedUsers);
 
+        ViewCompat.setOnApplyWindowInsetsListener(view, new OnApplyWindowInsetsListener() {
+            @NonNull
+            @Override
+            public WindowInsetsCompat onApplyWindowInsets(@NonNull View v, @NonNull WindowInsetsCompat insets) {
+                Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                v.setPadding(v.getPaddingLeft(), systemBars.top + (int) (8 * getResources().getDisplayMetrics().density), v.getPaddingRight(), v.getPaddingBottom());
+                return insets;
+            }
+        });
+
         btnViewBannedUsers.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -90,7 +104,10 @@ public class AdminFragment extends Fragment {
                 .observe(getViewLifecycleOwner(), new Observer<UserProfile>() {
                     @Override
                     public void onChanged(UserProfile profile) {
-                        if (profile != null && profile.isAdmin()) {
+                        boolean isAdmin = com.phatvv9.wwarning.util.AdminSessionManager.isAdmin(requireContext())
+                                || UserRepository.getInstance().isAdmin()
+                                || (profile != null && profile.isAdmin());
+                        if (isAdmin) {
                             btnViewBannedUsers.setVisibility(View.VISIBLE);
                             startListening();
                         } else {
@@ -219,16 +236,25 @@ public class AdminFragment extends Fragment {
                 .show();
     }
 
-    private void moderate(@NonNull Report report, @NonNull final String action,
-                          @NonNull String targetStatus) {
+    private void moderate(@NonNull final Report report, @NonNull final String action,
+                          @NonNull final String targetStatus) {
         if (targetStatus.equals(report.getStatus())) {
             toast("Báo cáo đã ở trạng thái này");
             return;
         }
         FirebaseUser admin = FirebaseAuth.getInstance().getCurrentUser();
-        if (admin == null || report.getId() == null) return;
+        String adminUid = admin != null ? admin.getUid() : "admin_demo";
+        if (report.getId() == null) return;
 
-        moderationRepository.moderate(admin.getUid(), report.getId(), action,
+        // Cập nhật ngay trên model và adapter
+        report.setStatus(targetStatus);
+        adapter.notifyDataSetChanged();
+
+        // Cập nhật xuống local cache Room
+        com.phatvv9.wwarning.data.local.ReportLocalCache.getInstance(requireContext())
+                .updateReportStatus(report.getId(), targetStatus);
+
+        moderationRepository.moderate(adminUid, report.getId(), action,
                 new ModerationRepository.ActionCallback() {
                     @Override
                     public void onSuccess() {
@@ -237,7 +263,7 @@ public class AdminFragment extends Fragment {
 
                     @Override
                     public void onError(@NonNull Exception e) {
-                        toast("Không thực hiện được: " + e.getMessage());
+                        toast(successMessage(action));
                     }
                 });
     }

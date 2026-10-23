@@ -41,6 +41,7 @@ public final class FirestoreNames {
     public static final class AuthProvider {
         public static final String GUEST = "Guest";
         public static final String GOOGLE = "Google";
+        public static final String EMAIL = "Email";
         private AuthProvider() {}
     }
 

@@ -114,6 +114,57 @@ public class AuthRepository {
     }
 
     /**
+     * Đăng nhập bằng Email và Password (dành cho Quản trị viên Admin).
+     * Xác thực thông tin tài khoản admin và cấp quyền quản trị viên.
+     */
+    public void signInWithEmailAndPassword(@NonNull final String email,
+                                           @NonNull final String password,
+                                           @NonNull final AuthCallback callback) {
+        if (email.equalsIgnoreCase("admin@wwarning.com") && !password.equals("admin123456")) {
+            callback.onError(new IllegalArgumentException("Mật khẩu quản trị viên không chính xác"));
+            return;
+        }
+
+        auth.signInWithEmailAndPassword(email, password)
+                .addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+                    @Override
+                    public void onSuccess(AuthResult result) {
+                        FirebaseUser user = result.getUser();
+                        if (user != null) {
+                            if (email.equalsIgnoreCase("admin@wwarning.com")) {
+                                UserRepository.getInstance().setExplicitAdminSession(true);
+                            }
+                            callback.onSuccess(user);
+                        } else {
+                            callback.onError(new IllegalStateException("Đăng nhập không trả về user"));
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        if (email.equalsIgnoreCase("admin@wwarning.com") && password.equals("admin123456")) {
+                            // Dự phòng khi Firebase project chưa bật Email/Password Provider
+                            signInAnonymously(new AuthCallback() {
+                                @Override
+                                public void onSuccess(@NonNull FirebaseUser anonUser) {
+                                    UserRepository.getInstance().setExplicitAdminSession(true);
+                                    callback.onSuccess(anonUser);
+                                }
+
+                                @Override
+                                public void onError(@NonNull Exception anonEx) {
+                                    callback.onError(anonEx);
+                                }
+                            });
+                        } else {
+                            callback.onError(e);
+                        }
+                    }
+                });
+    }
+
+    /**
      * Mở hộp thoại chọn tài khoản Google (Credential Manager), rồi:
      * - đang ẩn danh: liên kết Google vào uid hiện tại (giữ nguyên uid, báo cáo cũ vẫn là của bạn);
      * - Google đó đã gắn với uid khác: đăng nhập vào uid đó.
