@@ -179,6 +179,13 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             }
         });
 
+        view.post(new Runnable() {
+            @Override
+            public void run() {
+                updateHeaderInsets(view);
+            }
+        });
+
         return view;
     }
 
@@ -223,39 +230,34 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     private void updateHeaderInsets(@Nullable View v) {
         if (v == null || !isAdded()) return;
-        int topOffset = statusBarHeight > 0 ? statusBarHeight : (int) (24 * getResources().getDisplayMetrics().density);
-        View banner = v.findViewById(R.id.tvOfflineBanner);
-        View riskFilter = v.findViewById(R.id.svRiskFilter);
+        View topContainer = v.findViewById(R.id.topBarContainer);
+        if (topContainer == null) return;
 
-        if (banner != null) {
-            banner.setPadding(banner.getPaddingLeft(), topOffset, banner.getPaddingRight(), (int) (8 * getResources().getDisplayMetrics().density));
-        }
-        if (riskFilter != null) {
-            ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) riskFilter.getLayoutParams();
-            if (banner != null && banner.getVisibility() == View.VISIBLE) {
-                lp.topMargin = (int) (8 * getResources().getDisplayMetrics().density);
-            } else {
-                lp.topMargin = topOffset + (int) (8 * getResources().getDisplayMetrics().density);
+        int top = statusBarHeight;
+        if (top <= 0) {
+            WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(v);
+            if (rootInsets != null) {
+                top = rootInsets.getInsets(
+                        WindowInsetsCompat.Type.statusBars() | WindowInsetsCompat.Type.displayCutout()).top;
             }
-            riskFilter.setLayoutParams(lp);
         }
+        if (top <= 0) {
+            int resId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+            if (resId > 0) {
+                top = getResources().getDimensionPixelSize(resId);
+            }
+        }
+        if (top <= 0) {
+            top = (int) (32 * getResources().getDisplayMetrics().density);
+        }
+
+        topContainer.setPadding(0, top, 0, 0);
     }
 
     private void applyMapPadding() {
         if (mMap == null || !isAdded()) return;
-        int topPadding = statusBarHeight;
-        if (topPadding <= 0) {
-            int resId = getResources().getIdentifier("status_bar_height", "dimen", "android");
-            if (resId > 0) {
-                topPadding = getResources().getDimensionPixelSize(resId);
-            }
-        }
-        View riskFilter = getView() != null ? getView().findViewById(R.id.svRiskFilter) : null;
-        int filterHeight = (riskFilter != null && riskFilter.getHeight() > 0)
-                ? riskFilter.getHeight()
-                : (int) (48 * getResources().getDisplayMetrics().density);
-        int totalTop = topPadding + filterHeight + (int) (16 * getResources().getDisplayMetrics().density);
-        mMap.setPadding(0, totalTop, 0, 0);
+        // Bản đồ đã nằm dưới topBarContainer nên không bị che khuất
+        mMap.setPadding(0, 0, 0, 0);
     }
 
     private void renderReportMarkers(@NonNull List<Report> reports) {
