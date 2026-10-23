@@ -104,7 +104,8 @@ public class AdminFragment extends Fragment {
                 .observe(getViewLifecycleOwner(), new Observer<UserProfile>() {
                     @Override
                     public void onChanged(UserProfile profile) {
-                        if (profile != null && profile.isAdmin()) {
+                        boolean isAdmin = UserRepository.getInstance().isAdmin() || (profile != null && profile.isAdmin());
+                        if (isAdmin) {
                             btnViewBannedUsers.setVisibility(View.VISIBLE);
                             startListening();
                         } else {

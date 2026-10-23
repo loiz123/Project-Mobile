@@ -51,7 +51,6 @@ public class ProfileFragment extends Fragment {
     private TextView tvAuthProvider;
     private Button btnGoogleSignIn;
     private Button btnSignOut;
-    private Button btnToggleAdmin;
     private Button btnTestNotification;
     private LinearLayout llReputationHistory;
 
@@ -71,7 +70,6 @@ public class ProfileFragment extends Fragment {
         tvAuthProvider = view.findViewById(R.id.tvAuthProvider);
         btnGoogleSignIn = view.findViewById(R.id.btnGoogleSignIn);
         btnSignOut = view.findViewById(R.id.btnSignOut);
-        btnToggleAdmin = view.findViewById(R.id.btnToggleAdmin);
         btnTestNotification = view.findViewById(R.id.btnTestNotification);
         llReputationHistory = view.findViewById(R.id.llReputationHistory);
 
@@ -87,15 +85,6 @@ public class ProfileFragment extends Fragment {
                 @Override
                 public void onClick(View v) {
                     signOut();
-                }
-            });
-        }
-
-        if (btnToggleAdmin != null) {
-            btnToggleAdmin.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    toggleAdminRole();
                 }
             });
         }
@@ -146,13 +135,25 @@ public class ProfileFragment extends Fragment {
         tvAuthProvider = null;
         btnGoogleSignIn = null;
         btnSignOut = null;
-        btnToggleAdmin = null;
         btnTestNotification = null;
         llReputationHistory = null;
     }
 
     private void bindProfile(@NonNull UserProfile profile) {
         if (tvUserName == null) return;
+        boolean isAdmin = com.phatvv9.wwarning.util.AdminSessionManager.isAdmin(requireContext()) || profile.isAdmin();
+
+        if (isAdmin) {
+            tvUserName.setText("Quản trị viên (Admin)");
+            tvReputationScore.setText(String.valueOf(profile.getReputationScore()));
+            tvBannedStatus.setText("👑 Vai trò: Quản trị viên (Admin)");
+            tvBannedStatus.setTextColor(ContextCompat.getColor(
+                    requireContext(), android.R.color.holo_purple));
+            tvAuthProvider.setText("Tài khoản: admin@wwarning.com");
+            btnGoogleSignIn.setVisibility(View.GONE);
+            return;
+        }
+
         tvUserName.setText(profile.getDisplayName());
         tvReputationScore.setText(String.valueOf(profile.getReputationScore()));
 
@@ -167,49 +168,23 @@ public class ProfileFragment extends Fragment {
         }
 
         boolean isGoogle = FirestoreNames.AuthProvider.GOOGLE.equals(profile.getAuthProvider());
-        tvAuthProvider.setText(isGoogle
-                ? "Tài khoản: Google"
-                : "Tài khoản: Ẩn danh (chưa liên kết Google)");
-        btnGoogleSignIn.setVisibility(isGoogle ? View.GONE : View.VISIBLE);
-
-        if (btnToggleAdmin != null) {
-            btnToggleAdmin.setText(profile.isAdmin() ? "❌ Tắt Admin" : "👑 Bật Admin");
+        if (isGoogle) {
+            tvAuthProvider.setText("Tài khoản: Google");
+            btnGoogleSignIn.setVisibility(View.GONE);
+        } else {
+            tvAuthProvider.setText("Tài khoản: Ẩn danh (chưa liên kết Google)");
+            btnGoogleSignIn.setVisibility(View.VISIBLE);
         }
     }
 
     private void signOut() {
+        com.phatvv9.wwarning.util.AdminSessionManager.setAdmin(requireContext(), false);
+        userRepository.setExplicitAdminSession(false);
         authRepository.signOut();
         Intent intent = new Intent(requireContext(), LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         requireActivity().finish();
-    }
-
-    private void toggleAdminRole() {
-        UserProfile profile = userRepository.getCurrentProfile().getValue();
-        if (profile == null) return;
-        final boolean makeAdmin = !profile.isAdmin();
-        String newRole = makeAdmin ? FirestoreNames.Role.ADMIN : FirestoreNames.Role.USER;
-
-        // Cập nhật ngay lập tức cho UI demo
-        userRepository.setDemoRole(newRole);
-
-        String uid = authRepository.currentUid();
-        if (uid != null) {
-            FirebaseFirestore.getInstance().collection("users").document(uid)
-                    .update("role", newRole)
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            // Không ảnh hưởng đến UI demo
-                        }
-                    });
-        }
-
-        Toast.makeText(requireContext(),
-                makeAdmin ? "👑 Đã bật quyền Admin! Xem tab Admin ở thanh dưới."
-                          : "Đã chuyển về quyền User thường",
-                Toast.LENGTH_SHORT).show();
     }
 
     private void testNotification() {

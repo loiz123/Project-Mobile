@@ -66,7 +66,7 @@ public class UserRepository {
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final MutableLiveData<UserProfile> currentProfile = new MutableLiveData<>();
     private ListenerRegistration profileListener;
-    private boolean isDemoAdmin = false;
+    private boolean explicitAdminSession = false;
 
     private UserRepository() {}
 
@@ -82,24 +82,25 @@ public class UserRepository {
     }
 
     public boolean isAdmin() {
-        if (isDemoAdmin) return true;
+        if (explicitAdminSession) return true;
         UserProfile profile = currentProfile.getValue();
         return profile != null && profile.isAdmin();
     }
 
-    /** Hỗ trợ demo chuyển đổi nhanh quyền Admin / User */
-    public void setDemoRole(@NonNull String role) {
-        this.isDemoAdmin = FirestoreNames.Role.ADMIN.equals(role);
+    public void setExplicitAdminSession(boolean explicitAdmin) {
+        this.explicitAdminSession = explicitAdmin;
         UserProfile p = currentProfile.getValue();
-        if (p != null) {
-            p.setRole(role);
+        if (p != null && explicitAdmin) {
+            p.setRole(FirestoreNames.Role.ADMIN);
+            p.setDisplayName("Quản trị viên (Admin)");
+            p.setAuthProvider(FirestoreNames.AuthProvider.EMAIL);
             currentProfile.setValue(p);
         }
     }
 
     /**
      * Đảm bảo users/{uid} tồn tại. Có rồi thì đọc ra, chưa có thì tạo mới
-     * (reputationScore = 100, role = User, status = Active).
+     * (reputationScore = 100, role = User hoặc Admin đối với tài khoản admin@wwarning.com, status = Active).
      */
     public void ensureUserProfile(@NonNull final FirebaseUser user,
                                   @NonNull final UserCallback callback) {
@@ -111,6 +112,16 @@ public class UserRepository {
                         if (doc.exists()) {
                             UserProfile existing = doc.toObject(UserProfile.class);
                             if (existing != null) {
+                                boolean isAdminUser = explicitAdminSession || (user.getEmail() != null && user.getEmail().equalsIgnoreCase("admin@wwarning.com"));
+                                if (isAdminUser && !FirestoreNames.Role.ADMIN.equals(existing.getRole())) {
+                                    ref.update("role", FirestoreNames.Role.ADMIN);
+                                    existing.setRole(FirestoreNames.Role.ADMIN);
+                                }
+                                if (explicitAdminSession) {
+                                    existing.setRole(FirestoreNames.Role.ADMIN);
+                                    existing.setDisplayName("Quản trị viên (Admin)");
+                                    existing.setAuthProvider(FirestoreNames.AuthProvider.EMAIL);
+                                }
                                 callback.onSuccess(existing);
                                 return;
                             }
@@ -129,10 +140,15 @@ public class UserRepository {
     private void createProfile(@NonNull final FirebaseUser user,
                                @NonNull DocumentReference ref,
                                @NonNull final UserCallback callback) {
-        String provider = user.isAnonymous()
+        boolean isAdminEmail = explicitAdminSession || (user.getEmail() != null && user.getEmail().equalsIgnoreCase("admin@wwarning.com"));
+        String provider = user.isAnonymous() && !explicitAdminSession
                 ? FirestoreNames.AuthProvider.GUEST
-                : FirestoreNames.AuthProvider.GOOGLE;
-        final UserProfile profile = new UserProfile(defaultDisplayName(user), provider);
+                : (isAdminEmail ? FirestoreNames.AuthProvider.EMAIL : FirestoreNames.AuthProvider.GOOGLE);
+        String name = isAdminEmail ? "Quản trị viên (Admin)" : defaultDisplayName(user);
+        final UserProfile profile = new UserProfile(name, provider);
+        if (isAdminEmail) {
+            profile.setRole(FirestoreNames.Role.ADMIN);
+        }
         ref.set(profile)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
@@ -217,8 +233,10 @@ public class UserRepository {
                         }
                         if (snapshot != null && snapshot.exists()) {
                             UserProfile profile = snapshot.toObject(UserProfile.class);
-                            if (isDemoAdmin && profile != null) {
+                            if (profile != null && explicitAdminSession) {
                                 profile.setRole(FirestoreNames.Role.ADMIN);
+                                profile.setDisplayName("Quản trị viên (Admin)");
+                                profile.setAuthProvider(FirestoreNames.AuthProvider.EMAIL);
                             }
                             currentProfile.setValue(profile);
                         }
