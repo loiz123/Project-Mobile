@@ -77,6 +77,7 @@ public class ReportRepository {
         this.reportsLiveData = new MutableLiveData<>();
         if (context != null) {
             this.localCache = ReportLocalCache.getInstance(context);
+            loadReportsFromRoomCache();
         }
         listenToAllActiveReports();
     }
@@ -211,6 +212,10 @@ public class ReportRepository {
         }
 
         List<Report> result = new ArrayList<>(allReports.values());
+        if (result.isEmpty() && localCache != null) {
+            loadReportsFromRoomCache();
+            return;
+        }
         sortReportsDesc(result);
         reportsLiveData.setValue(result);
 
@@ -297,6 +302,27 @@ public class ReportRepository {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         Log.e(TAG, "Error creating report", e);
+                        if (callback != null) {
+                            callback.onError(e);
+                        }
+                    }
+                });
+    }
+
+    public void deleteReport(@NonNull final String reportId, @Nullable final ReportCallback callback) {
+        db.collection(COLLECTION_REPORTS).document(reportId)
+                .update("status", "Deleted")
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                        if (callback != null) {
+                            callback.onSuccess(reportId);
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
                         if (callback != null) {
                             callback.onError(e);
                         }

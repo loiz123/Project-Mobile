@@ -4,57 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/tvOfflineBanner"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:background="#D32F2F"
-        android:gravity="center"
-        android:padding="6dp"
-        android:text="⚠️ Đang offline - Đang xem dữ liệu đã lưu"
-        android:textColor="@android:color/white"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <HorizontalScrollView
-        android:id="@+id/svRiskFilter"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:scrollbars="none"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvOfflineBanner">
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chipGroupRiskFilter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:selectionRequired="true"
-            app:singleSelection="true">
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipFilterAll"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="true"
-                android:text="Tất cả" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chipFilterRisk"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚠️ Chỉ rủi ro" />
-
-        </com.google.android.material.chip.ChipGroup>
-    </HorizontalScrollView>
-
+    <!-- Bản đồ tràn toàn màn hình làm nền -->
     <fragment
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
@@ -63,13 +13,129 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/svRiskFilter" />
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Thanh điều khiển nổi phía trên (Transparent Header) -->
+    <LinearLayout
+        android:id="@+id/topBarContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tvOfflineBanner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#D32F2F"
+            android:gravity="center"
+            android:padding="6dp"
+            android:text="⚠️ Đang offline - Đang xem dữ liệu đã lưu"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <!-- Thanh tìm kiếm địa điểm phong cách Google Maps (gọn cho màn ngang) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardSearchBar"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginStart="14dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="14dp"
+            app:cardBackgroundColor="@android:color/white"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingEnd="10dp">
+
+                <ImageView
+                    android:id="@+id/ivSearchIcon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:contentDescription="Tìm kiếm"
+                    android:src="@android:drawable/ic_menu_search"
+                    app:tint="#616161" />
+
+                <EditText
+                    android:id="@+id/etSearchLocation"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="Tìm địa điểm, địa chỉ..."
+                    android:imeOptions="actionSearch"
+                    android:inputType="textPostalAddress"
+                    android:maxLines="1"
+                    android:textColor="#212121"
+                    android:textColorHint="#9E9E9E"
+                    android:textSize="13sp" />
+
+                <ImageView
+                    android:id="@+id/btnClearSearch"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:contentDescription="Xóa tìm kiếm"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:visibility="gone"
+                    app:tint="#757575" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Bộ lọc rủi ro nổi dưới thanh tìm kiếm -->
+        <HorizontalScrollView
+            android:id="@+id/svRiskFilter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="14dp"
+            android:layout_marginBottom="2dp"
+            android:scrollbars="none">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupRiskFilter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipFilterAll"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="Tất cả" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipFilterRisk"
+                    style="@style/Widget.MaterialComponents.Chip.Choice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚠️ Chỉ rủi ro" />
+
+            </com.google.android.material.chip.ChipGroup>
+        </HorizontalScrollView>
+    </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabQuickReport"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="24dp"
         android:contentDescription="Báo cáo nhanh thời tiết"
         android:src="@android:drawable/ic_input_add"
         app:layout_constraintBottom_toBottomOf="parent"
