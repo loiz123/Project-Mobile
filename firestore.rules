@@ -92,6 +92,11 @@ service cloud.firestore {
         && request.resource.data.get('downCount', 0) == 0;
 
       allow update: if isSignedIn() && (
+        // Chủ bài viết tự xóa hoặc ẩn báo cáo của mình
+        (request.auth.uid == resource.data.userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status in ['Deleted', 'Hidden'])
+        ||
         // Admin ẩn/xóa/khôi phục báo cáo
         (isAdmin()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))

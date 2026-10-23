@@ -282,6 +282,31 @@ public class ReportRepository {
                 expiresAt
         );
 
+        final String currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
+        if (currentUid != null) {
+            db.collection(COLLECTION_REPORTS)
+                    .whereEqualTo("userId", currentUid)
+                    .whereEqualTo("status", FirestoreNames.ReportStatus.ACTIVE)
+                    .get()
+                    .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                        @Override
+                        public void onSuccess(QuerySnapshot snapshots) {
+                            if (snapshots != null) {
+                                for (QueryDocumentSnapshot doc : snapshots) {
+                                    Double rLat = doc.getDouble("latitude");
+                                    Double rLng = doc.getDouble("longitude");
+                                    if (rLat != null && rLng != null) {
+                                        double dist = GeoUtils.getDistanceBetween(rLat, rLng, lat, lng);
+                                        if (dist <= 200.0) { // Ẩn báo cáo cũ cùng vị trí tránh đè marker
+                                            doc.getReference().update("status", FirestoreNames.ReportStatus.HIDDEN);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+        }
+
         db.collection(COLLECTION_REPORTS)
                 .add(report)
                 .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
@@ -297,6 +322,27 @@ public class ReportRepository {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         Log.e(TAG, "Error creating report", e);
+                        if (callback != null) {
+                            callback.onError(e);
+                        }
+                    }
+                });
+    }
+
+    public void deleteReport(@NonNull final String reportId, @Nullable final ReportCallback callback) {
+        db.collection(COLLECTION_REPORTS).document(reportId)
+                .update("status", "Deleted")
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                        if (callback != null) {
+                            callback.onSuccess(reportId);
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
                         if (callback != null) {
                             callback.onError(e);
                         }

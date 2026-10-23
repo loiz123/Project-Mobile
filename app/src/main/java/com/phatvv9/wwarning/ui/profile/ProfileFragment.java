@@ -1,5 +1,6 @@
 package com.phatvv9.wwarning.ui.profile;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,18 +12,27 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.OnApplyWindowInsetsListener;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.AuthRepository;
 import com.phatvv9.wwarning.data.remote.ReputationRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.model.ReputationLog;
 import com.phatvv9.wwarning.model.UserProfile;
+import com.phatvv9.wwarning.ui.login.LoginActivity;
 import com.phatvv9.wwarning.util.FirestoreNames;
+import com.phatvv9.wwarning.worker.ReminderScheduler;
 
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -40,6 +50,9 @@ public class ProfileFragment extends Fragment {
     private TextView tvContributionsCount;
     private TextView tvAuthProvider;
     private Button btnGoogleSignIn;
+    private Button btnSignOut;
+    private Button btnToggleAdmin;
+    private Button btnTestNotification;
     private LinearLayout llReputationHistory;
 
     @Nullable
@@ -57,12 +70,52 @@ public class ProfileFragment extends Fragment {
         tvContributionsCount = view.findViewById(R.id.tvContributionsCount);
         tvAuthProvider = view.findViewById(R.id.tvAuthProvider);
         btnGoogleSignIn = view.findViewById(R.id.btnGoogleSignIn);
+        btnSignOut = view.findViewById(R.id.btnSignOut);
+        btnToggleAdmin = view.findViewById(R.id.btnToggleAdmin);
+        btnTestNotification = view.findViewById(R.id.btnTestNotification);
         llReputationHistory = view.findViewById(R.id.llReputationHistory);
 
         btnGoogleSignIn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startGoogleSignIn();
+            }
+        });
+
+        if (btnSignOut != null) {
+            btnSignOut.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    signOut();
+                }
+            });
+        }
+
+        if (btnToggleAdmin != null) {
+            btnToggleAdmin.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    toggleAdminRole();
+                }
+            });
+        }
+
+        if (btnTestNotification != null) {
+            btnTestNotification.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    testNotification();
+                }
+            });
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(view, new OnApplyWindowInsetsListener() {
+            @NonNull
+            @Override
+            public WindowInsetsCompat onApplyWindowInsets(@NonNull View v, @NonNull WindowInsetsCompat insets) {
+                Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                v.setPadding(v.getPaddingLeft(), systemBars.top + (int) (12 * getResources().getDisplayMetrics().density), v.getPaddingRight(), v.getPaddingBottom());
+                return insets;
             }
         });
 
@@ -92,6 +145,9 @@ public class ProfileFragment extends Fragment {
         tvContributionsCount = null;
         tvAuthProvider = null;
         btnGoogleSignIn = null;
+        btnSignOut = null;
+        btnToggleAdmin = null;
+        btnTestNotification = null;
         llReputationHistory = null;
     }
 
@@ -115,6 +171,56 @@ public class ProfileFragment extends Fragment {
                 ? "Tài khoản: Google"
                 : "Tài khoản: Ẩn danh (chưa liên kết Google)");
         btnGoogleSignIn.setVisibility(isGoogle ? View.GONE : View.VISIBLE);
+
+        if (btnToggleAdmin != null) {
+            btnToggleAdmin.setText(profile.isAdmin() ? "❌ Tắt Admin" : "👑 Bật Admin");
+        }
+    }
+
+    private void signOut() {
+        authRepository.signOut();
+        Intent intent = new Intent(requireContext(), LoginActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        requireActivity().finish();
+    }
+
+    private void toggleAdminRole() {
+        UserProfile profile = userRepository.getCurrentProfile().getValue();
+        if (profile == null) return;
+        String uid = authRepository.currentUid();
+        if (uid == null) return;
+
+        final boolean makeAdmin = !profile.isAdmin();
+        String newRole = makeAdmin ? FirestoreNames.Role.ADMIN : FirestoreNames.Role.USER;
+
+        FirebaseFirestore.getInstance().collection("users").document(uid)
+                .update("role", newRole)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(),
+                                    makeAdmin ? "👑 Đã bật quyền Admin! Xem tab Admin ở thanh dưới."
+                                              : "Đã chuyển về quyền User thường",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(), "Lỗi đổi quyền: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+    }
+
+    private void testNotification() {
+        ReminderScheduler.requestNotificationPermissionIfNeeded(requireContext());
+        Toast.makeText(requireContext(), "Thông báo nhắc nhở sẽ xuất hiện sau 5 giây...", Toast.LENGTH_SHORT).show();
+        ReminderScheduler.scheduleTestReminder(requireContext(), 5);
     }
 
     private void loadReportCount() {
