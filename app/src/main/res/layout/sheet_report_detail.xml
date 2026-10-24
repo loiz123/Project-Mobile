@@ -1,107 +1,164 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingStart="20dp"
-    android:paddingTop="20dp"
-    android:paddingEnd="20dp"
-    android:paddingBottom="32dp">
-
-    <TextView
-        android:id="@+id/tvReportCategory"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Loại báo cáo"
-        android:textSize="18sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/tvReportTime"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Thời gian: Vừa xong"
-        android:textColor="@android:color/darker_gray"
-        android:textSize="14sp" />
-
-    <TextView
-        android:id="@+id/tvReportAuthor"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Người đăng: ..."
-        android:textSize="14sp" />
-
-    <TextView
-        android:id="@+id/tvReportSeverity"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Mức độ: Nhẹ"
-        android:textSize="14sp" />
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="20dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="32dp">
+
+        <!-- Khối gom nhóm cụm 500m (chỉ hiện khi cụm có >= 2 báo cáo) -->
+        <LinearLayout
+            android:id="@+id/llClusterSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvClusterTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="📍 Tổng hợp khu vực 500m"
+                android:textColor="#5E35B1"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvClusterSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Chi tiết số lượng báo cáo và lượt vote của từng hiện tượng:"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:id="@+id/llClusterCategories"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="14dp"
+                android:background="#E0E0E0" />
+
+            <TextView
+                android:id="@+id/tvDetailSectionHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Báo cáo tiêu biểu (chạm loại trên để đổi):"
+                android:textColor="#757575"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/tvUpvoteCount"
-            android:layout_width="0dp"
+            android:id="@+id/tvReportCategory"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Hữu ích: 0"
+            android:text="Loại báo cáo"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvReportTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Thời gian: Vừa xong"
+            android:textColor="@android:color/darker_gray"
             android:textSize="14sp" />
 
         <TextView
-            android:id="@+id/tvDownvoteCount"
-            android:layout_width="0dp"
+            android:id="@+id/tvReportAuthor"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Báo sai: 0"
+            android:layout_marginTop="8dp"
+            android:text="Người đăng: ..."
             android:textSize="14sp" />
-    </LinearLayout>
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:orientation="horizontal">
+        <TextView
+            android:id="@+id/tvReportSeverity"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Mức độ: Nhẹ"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvUpvoteCount"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Hữu ích: 0"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvDownvoteCount"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Báo sai: 0"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUpvote"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:text="Xác nhận (+1)"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#2E7D32" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDownvote"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="Báo sai (-1)"
+                android:textColor="@android:color/white"
+                app:backgroundTint="#C62828" />
+        </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnUpvote"
-            android:layout_width="0dp"
+            android:id="@+id/btnDeleteMyReport"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:layout_weight="1"
-            android:text="Xác nhận (+1)"
-            android:textColor="@android:color/white"
-            app:backgroundTint="#2E7D32" />
+            android:layout_marginTop="12dp"
+            android:text="🗑️ Xóa báo cáo này"
+            android:textColor="#D32F2F"
+            android:visibility="gone"
+            app:strokeColor="#D32F2F" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnDownvote"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:text="Báo sai (-1)"
-            android:textColor="@android:color/white"
-            app:backgroundTint="#C62828" />
     </LinearLayout>
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnDeleteMyReport"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="🗑️ Xóa báo cáo này"
-        android:textColor="#D32F2F"
-        android:visibility="gone"
-        app:strokeColor="#D32F2F" />
-
-</LinearLayout>
+</ScrollView>
