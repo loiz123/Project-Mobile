@@ -32,3 +32,11 @@ Dự án được xây dựng và thiết kế bởi 4 thành viên, mỗi ngư�
 * Hà Ngọc Thiện - @hntrhunter
 * Tiêu Lâm Định Quốc - @dinhquoc03032626
 * Hồ Duy Hải - @haiho2365-source
+
+## ⚙️ Cài đặt để build
+
+1. Copy `local.properties.example` thành `local.properties` (file này đã nằm trong `.gitignore`, **không commit**).
+2. Điền `sdk.dir` và `MAPS_API_KEY` (key Maps SDK for Android, đã giới hạn theo package `com.phatvv9.wwarning` và SHA-1 của máy bạn).
+3. Đặt `google-services.json` vào thư mục `app/`.
+4. Dán `firestore.rules` vào Firebase Console → Firestore → Rules → Publish.
+5. Tài khoản Admin: đăng nhập app một lần, rồi vào Firestore sửa `users/{uid}.role` thành `Admin` (rules không cho app tự nâng quyền).

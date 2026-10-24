@@ -50,6 +50,7 @@ public class ReportRepository {
     private final FirebaseAuth auth;
     private final MutableLiveData<List<Report>> reportsLiveData;
     private ReportLocalCache localCache;
+    private final java.util.concurrent.ExecutorService cacheExecutor = Executors.newSingleThreadExecutor();
 
     private ListenerRegistration fallbackListenerRegistration;
     private final List<ListenerRegistration> boundaryListeners = new ArrayList<>();
@@ -57,6 +58,7 @@ public class ReportRepository {
 
     private Double lastQueryLat = null;
     private Double lastQueryLng = null;
+    private double lastRadiusMeters = -1;
     private double currentRadiusMeters = DEFAULT_RADIUS_KM * 1000.0;
 
     private static volatile ReportRepository INSTANCE;
@@ -90,6 +92,7 @@ public class ReportRepository {
         this.reportsLiveData = new MutableLiveData<>();
         if (context != null) {
             this.localCache = ReportLocalCache.getInstance(context);
+            localCache.cleanExpiredReports(System.currentTimeMillis());
             loadReportsFromRoomCache();
         }
         listenToAllActiveReports();
@@ -156,8 +159,11 @@ public class ReportRepository {
         final double radiusMeters = radiusKm * 1000.0;
         this.currentRadiusMeters = radiusMeters;
 
-        // Nếu đã có toạ độ và di chuyển dưới 500m thì không cần đăng ký lại listeners
-        if (lastQueryLat != null && lastQueryLng != null) {
+        // Chỉ bỏ qua khi: đang có listener, bán kính không đổi và di chuyển dưới 500m.
+        // (Sau stopListening() ở onDestroyView, boundaryListeners rỗng nên sẽ đăng ký lại.)
+        if (lastQueryLat != null && lastQueryLng != null
+                && !boundaryListeners.isEmpty()
+                && radiusMeters == lastRadiusMeters) {
             double moved = GeoUtils.getDistanceBetween(lastQueryLat, lastQueryLng, lat, lng);
             if (moved < MIN_MOVE_DISTANCE_REQUERY_METERS) {
                 return;
@@ -166,6 +172,7 @@ public class ReportRepository {
 
         lastQueryLat = lat;
         lastQueryLng = lng;
+        lastRadiusMeters = radiusMeters;
 
         // Dừng các listener cũ
         stopListening();
@@ -239,7 +246,7 @@ public class ReportRepository {
 
     private void loadReportsFromRoomCache() {
         if (localCache != null) {
-            Executors.newSingleThreadExecutor().execute(new Runnable() {
+            cacheExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
                     List<Report> cached = localCache.getCachedReportsSync();
@@ -255,8 +262,12 @@ public class ReportRepository {
         Collections.sort(reports, new Comparator<Report>() {
             @Override
             public int compare(Report o1, Report o2) {
-                if (o1.getCreatedAt() == null || o2.getCreatedAt() == null) return 0;
-                return o2.getCreatedAt().compareTo(o1.getCreatedAt());
+                Timestamp t1 = o1.getCreatedAt();
+                Timestamp t2 = o2.getCreatedAt();
+                if (t1 == null && t2 == null) return 0;
+                if (t1 == null) return -1;   // chưa có giờ server = vừa tạo = mới nhất
+                if (t2 == null) return 1;
+                return t2.compareTo(t1);
             }
         });
     }
@@ -361,12 +372,12 @@ public class ReportRepository {
     }
 
     public void deleteReport(@NonNull final String reportId, @Nullable final ReportCallback callback) {
-        removeReportLocally(reportId);
         db.collection(COLLECTION_REPORTS).document(reportId)
                 .update("status", FirestoreNames.ReportStatus.DELETED)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void unused) {
+                        removeReportLocally(reportId);   // chỉ xóa cục bộ khi server đã nhận
                         if (callback != null) {
                             callback.onSuccess(reportId);
                         }
@@ -375,9 +386,9 @@ public class ReportRepository {
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        Log.w(TAG, "Server Firestore từ chối hoặc lỗi khi xóa, đã áp dụng xóa cục bộ", e);
+                        Log.w(TAG, "Xóa báo cáo thất bại", e);
                         if (callback != null) {
-                            callback.onSuccess(reportId);
+                            callback.onError(e);
                         }
                     }
                 });

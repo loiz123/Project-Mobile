@@ -104,9 +104,7 @@ public class AdminFragment extends Fragment {
                 .observe(getViewLifecycleOwner(), new Observer<UserProfile>() {
                     @Override
                     public void onChanged(UserProfile profile) {
-                        boolean isAdmin = com.phatvv9.wwarning.util.AdminSessionManager.isAdmin(requireContext())
-                                || UserRepository.getInstance().isAdmin()
-                                || (profile != null && profile.isAdmin());
+                        boolean isAdmin = profile != null && profile.isAdmin();
                         if (isAdmin) {
                             btnViewBannedUsers.setVisibility(View.VISIBLE);
                             startListening();
@@ -246,24 +244,27 @@ public class AdminFragment extends Fragment {
         String adminUid = admin != null ? admin.getUid() : "admin_demo";
         if (report.getId() == null) return;
 
-        // Cập nhật ngay trên model và adapter
+        // Cập nhật ngay trên giao diện; nếu server từ chối thì hoàn tác
+        final String oldStatus = report.getStatus();
         report.setStatus(targetStatus);
         adapter.notifyDataSetChanged();
-
-        // Cập nhật xuống local cache Room
-        com.phatvv9.wwarning.data.local.ReportLocalCache.getInstance(requireContext())
-                .updateReportStatus(report.getId(), targetStatus);
 
         moderationRepository.moderate(adminUid, report.getId(), action,
                 new ModerationRepository.ActionCallback() {
                     @Override
                     public void onSuccess() {
+                        if (!isAdded()) return;
+                        com.phatvv9.wwarning.data.local.ReportLocalCache.getInstance(requireContext())
+                                .updateReportStatus(report.getId(), targetStatus);
                         toast(successMessage(action));
                     }
 
                     @Override
                     public void onError(@NonNull Exception e) {
-                        toast(successMessage(action));
+                        report.setStatus(oldStatus);
+                        adapter.notifyDataSetChanged();
+                        if (!isAdded()) return;
+                        toast("Không thực hiện được: " + e.getMessage());
                     }
                 });
     }

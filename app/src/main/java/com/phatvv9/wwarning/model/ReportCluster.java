@@ -63,9 +63,9 @@ public class ReportCluster {
             return reports;
         }
 
+        /** Điểm xếp hạng = số báo cáo (tự báo cáo) + số vote đúng (upvote). */
         public int getScore() {
-            // Ưu tiên: nhiều upvote nhất, sau đó đến số lượng báo cáo nhiều nhất
-            return (totalUpCount * 100) + reportCount;
+            return reportCount + totalUpCount;
         }
     }
 
@@ -108,6 +108,21 @@ public class ReportCluster {
         return centerLng;
     }
 
+    /** Vị trí hiển thị marker cụm: trung bình toạ độ các báo cáo trong cụm. */
+    public double getDisplayLat() {
+        if (reports.isEmpty()) return centerLat;
+        double sum = 0;
+        for (Report r : reports) sum += r.getLatitude();
+        return sum / reports.size();
+    }
+
+    public double getDisplayLng() {
+        if (reports.isEmpty()) return centerLng;
+        double sum = 0;
+        for (Report r : reports) sum += r.getLongitude();
+        return sum / reports.size();
+    }
+
     /**
      * Nhóm các báo cáo theo categoryId và sắp xếp theo số vote đúng / số báo cáo nhiều nhất.
      */
@@ -127,7 +142,13 @@ public class ReportCluster {
         Collections.sort(list, new Comparator<CategoryStat>() {
             @Override
             public int compare(CategoryStat o1, CategoryStat o2) {
-                return Integer.compare(o2.getScore(), o1.getScore());
+                if (o2.getScore() != o1.getScore()) {
+                    return Integer.compare(o2.getScore(), o1.getScore());
+                }
+                if (o2.getTotalUpCount() != o1.getTotalUpCount()) {
+                    return Integer.compare(o2.getTotalUpCount(), o1.getTotalUpCount());
+                }
+                return Integer.compare(o2.getReportCount(), o1.getReportCount());
             }
         });
         return list;

@@ -115,6 +115,11 @@ public class QuickReportDialog extends Dialog {
             resolvedId = categoryMap.get(key);
         }
 
+        if (!com.phatvv9.wwarning.data.sync.SyncManager.getInstance(getContext()).isOnline()) {
+            Toast.makeText(getContext(),
+                    "Đang offline: báo cáo sẽ được gửi khi có mạng", Toast.LENGTH_LONG).show();
+        }
+
         repository.createReport(resolvedId, lat, lng, new ReportRepository.ReportCallback() {
             @Override
             public void onSuccess(@NonNull String reportId) {

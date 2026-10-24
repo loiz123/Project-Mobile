@@ -127,21 +127,8 @@ public class ModerationRepository {
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        // Thử cập nhật riêng reportRef nếu batch moderation_logs bị chặn bởi rules
-                        reportRef.update("status", newStatus)
-                                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                    @Override
-                                    public void onSuccess(Void unused) {
-                                        if (callback != null) callback.onSuccess();
-                                    }
-                                })
-                                .addOnFailureListener(new OnFailureListener() {
-                                    @Override
-                                    public void onFailure(@NonNull Exception ex2) {
-                                        Log.w(TAG, "Kiểm duyệt server Firestore bị từ chối, áp dụng cập nhật cục bộ cho Admin", ex2);
-                                        if (callback != null) callback.onSuccess();
-                                    }
-                                });
+                        Log.w(TAG, "Kiểm duyệt bị từ chối", e);
+                        if (callback != null) callback.onError(e);
                     }
                 });
     }

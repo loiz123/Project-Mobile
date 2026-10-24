@@ -45,12 +45,12 @@
             android:id="@+id/llStats"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
+            android:layout_marginStart="24dp"
             android:orientation="horizontal"
             android:baselineAligned="false"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/tvUserName"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintStart_toEndOf="@id/ivAvatar"
+            app:layout_constraintTop_toTopOf="@id/ivAvatar">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -97,12 +97,11 @@
             </LinearLayout>
         </LinearLayout>
 
-
         <TextView
             android:id="@+id/tvAuthProvider"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="8dp"
             android:text="Tài khoản: Ẩn danh"
             android:textSize="14sp"
             app:layout_constraintStart_toStartOf="@id/tvUserName"
@@ -112,7 +111,7 @@
             android:id="@+id/btnGoogleSignIn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="44dp"
             android:text="Đăng nhập Google"
             app:layout_constraintStart_toStartOf="@id/tvUserName"
             app:layout_constraintTop_toBottomOf="@id/tvAuthProvider" />
@@ -122,12 +121,13 @@
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="20dp"
             android:text="Đăng xuất"
             android:textColor="#D32F2F"
             app:layout_constraintBottom_toBottomOf="@id/btnGoogleSignIn"
             app:layout_constraintStart_toEndOf="@id/btnGoogleSignIn"
-            app:layout_constraintTop_toTopOf="@id/btnGoogleSignIn" />
+            app:layout_constraintTop_toTopOf="@id/btnGoogleSignIn"
+            app:layout_constraintVertical_bias="1.0" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnTestNotification"
@@ -149,7 +149,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:barrierDirection="bottom"
-            app:constraint_referenced_ids="ivAvatar,llStats,tvAuthProvider,btnGoogleSignIn,btnSignOut,btnTestNotification" />
+            app:constraint_referenced_ids="ivAvatar,tvUserName,tvBannedStatus,llStats,tvAuthProvider,btnGoogleSignIn,btnSignOut,btnTestNotification" />
 
         <TextView
             android:id="@+id/tvHistoryTitle"

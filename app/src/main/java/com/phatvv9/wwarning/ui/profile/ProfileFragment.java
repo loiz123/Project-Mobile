@@ -141,7 +141,7 @@ public class ProfileFragment extends Fragment {
 
     private void bindProfile(@NonNull UserProfile profile) {
         if (tvUserName == null) return;
-        boolean isAdmin = com.phatvv9.wwarning.util.AdminSessionManager.isAdmin(requireContext()) || profile.isAdmin();
+        boolean isAdmin = profile.isAdmin();
 
         if (isAdmin) {
             tvUserName.setText("Quản trị viên (Admin)");
@@ -149,7 +149,7 @@ public class ProfileFragment extends Fragment {
             tvBannedStatus.setText("👑 Vai trò: Quản trị viên (Admin)");
             tvBannedStatus.setTextColor(ContextCompat.getColor(
                     requireContext(), android.R.color.holo_purple));
-            tvAuthProvider.setText("Tài khoản: admin@wwarning.com");
+            tvAuthProvider.setText("Tài khoản: Quản trị viên");
             btnGoogleSignIn.setVisibility(View.GONE);
             return;
         }
@@ -178,8 +178,7 @@ public class ProfileFragment extends Fragment {
     }
 
     private void signOut() {
-        com.phatvv9.wwarning.util.AdminSessionManager.setAdmin(requireContext(), false);
-        userRepository.setExplicitAdminSession(false);
+        userRepository.clearCurrentProfile();
         authRepository.signOut();
         Intent intent = new Intent(requireContext(), LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
