@@ -196,7 +196,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             }
         });
 
-        reportRepository = new ReportRepository(requireContext());
+        reportRepository = ReportRepository.getInstance(requireContext());
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
