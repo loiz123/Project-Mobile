@@ -280,6 +280,7 @@ public class UserRepository {
     public void countMyReports(@NonNull String uid, @NonNull final CountCallback callback) {
         db.collection(FirestoreNames.REPORTS)
                 .whereEqualTo("userId", uid)
+                .whereEqualTo("status", FirestoreNames.ReportStatus.ACTIVE)
                 .count()
                 .get(AggregateSource.SERVER)
                 .addOnSuccessListener(new OnSuccessListener<AggregateQuerySnapshot>() {

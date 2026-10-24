@@ -129,50 +129,27 @@
             app:layout_constraintStart_toEndOf="@id/btnGoogleSignIn"
             app:layout_constraintTop_toTopOf="@id/btnGoogleSignIn" />
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardDemoTools"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnTestNotification"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
+            android:text="🔔 Thử bắn thông báo 15 phút"
+            android:textColor="#5E35B1"
+            android:textSize="13sp"
             app:strokeColor="#7E57C2"
             app:strokeWidth="1dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btnGoogleSignIn">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⚡ Công cụ Demo chấm điểm"
-                    android:textColor="#7E57C2"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnTestNotification"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="🔔 Thử bắn thông báo 15 phút (5s)"
-                    android:textSize="12sp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            app:layout_constraintTop_toBottomOf="@id/btnGoogleSignIn" />
 
         <androidx.constraintlayout.widget.Barrier
             android:id="@+id/barrierHeader"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:barrierDirection="bottom"
-            app:constraint_referenced_ids="ivAvatar,llStats,tvAuthProvider,btnGoogleSignIn,btnSignOut,cardDemoTools" />
+            app:constraint_referenced_ids="ivAvatar,llStats,tvAuthProvider,btnGoogleSignIn,btnSignOut,btnTestNotification" />
 
         <TextView
             android:id="@+id/tvHistoryTitle"
