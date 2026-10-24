@@ -189,7 +189,7 @@ public class ProfileFragment extends Fragment {
 
     private void testNotification() {
         ReminderScheduler.requestNotificationPermissionIfNeeded(requireContext());
-        Toast.makeText(requireContext(), "Thông báo nhắc nhở sẽ xuất hiện sau 5 giây...", Toast.LENGTH_SHORT).show();
+        Toast.makeText(requireContext(), "Thông báo nhắc nhở 15 phút sẽ xuất hiện sau giây lát...", Toast.LENGTH_SHORT).show();
         ReminderScheduler.scheduleTestReminder(requireContext(), 5);
     }
 

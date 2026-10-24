@@ -59,6 +59,19 @@ public class ReportRepository {
     private Double lastQueryLng = null;
     private double currentRadiusMeters = DEFAULT_RADIUS_KM * 1000.0;
 
+    private static volatile ReportRepository INSTANCE;
+
+    public static ReportRepository getInstance(@Nullable Context context) {
+        if (INSTANCE == null) {
+            synchronized (ReportRepository.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new ReportRepository(context != null ? context.getApplicationContext() : null);
+                }
+            }
+        }
+        return INSTANCE;
+    }
+
     public ReportRepository() {
         this(FirebaseFirestore.getInstance(), FirebaseAuth.getInstance(), null);
     }
@@ -287,11 +300,30 @@ public class ReportRepository {
                 expiresAt
         );
 
+        final Report finalReport = report;
         db.collection(COLLECTION_REPORTS)
                 .add(report)
                 .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                     @Override
                     public void onSuccess(DocumentReference documentReference) {
+                        finalReport.setId(documentReference.getId());
+                        if (localCache != null) {
+                            localCache.saveReportsToRoom(Collections.singletonList(finalReport));
+                        }
+                        List<Report> current = reportsLiveData.getValue();
+                        List<Report> updated = current != null ? new ArrayList<>(current) : new ArrayList<Report>();
+                        boolean exists = false;
+                        for (Report r : updated) {
+                            if (documentReference.getId().equals(r.getId())) {
+                                exists = true;
+                                break;
+                            }
+                        }
+                        if (!exists) {
+                            updated.add(0, finalReport);
+                            reportsLiveData.setValue(updated);
+                        }
+
                         Log.d(TAG, "Report created with ID: " + documentReference.getId());
                         if (callback != null) {
                             callback.onSuccess(documentReference.getId());
@@ -309,9 +341,29 @@ public class ReportRepository {
                 });
     }
 
+    public void removeReportLocally(@NonNull String reportId) {
+        if (localCache != null) {
+            localCache.updateReportStatus(reportId, FirestoreNames.ReportStatus.DELETED);
+        }
+        for (Map<String, Report> subMap : boundReportsMap.values()) {
+            subMap.remove(reportId);
+        }
+        List<Report> current = reportsLiveData.getValue();
+        if (current != null) {
+            List<Report> updated = new ArrayList<>();
+            for (Report r : current) {
+                if (!reportId.equals(r.getId())) {
+                    updated.add(r);
+                }
+            }
+            reportsLiveData.setValue(updated);
+        }
+    }
+
     public void deleteReport(@NonNull final String reportId, @Nullable final ReportCallback callback) {
+        removeReportLocally(reportId);
         db.collection(COLLECTION_REPORTS).document(reportId)
-                .update("status", "Deleted")
+                .update("status", FirestoreNames.ReportStatus.DELETED)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void unused) {
@@ -323,8 +375,9 @@ public class ReportRepository {
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "Server Firestore từ chối hoặc lỗi khi xóa, đã áp dụng xóa cục bộ", e);
                         if (callback != null) {
-                            callback.onError(e);
+                            callback.onSuccess(reportId);
                         }
                     }
                 });
