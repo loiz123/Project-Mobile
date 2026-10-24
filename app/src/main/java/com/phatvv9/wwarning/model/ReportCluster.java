@@ -83,6 +83,15 @@ public class ReportCluster {
         reports.add(report);
     }
 
+    public void removeReport(@NonNull String reportId) {
+        for (int i = 0; i < reports.size(); i++) {
+            if (reportId.equals(reports.get(i).getId())) {
+                reports.remove(i);
+                break;
+            }
+        }
+    }
+
     public List<Report> getReports() {
         return reports;
     }

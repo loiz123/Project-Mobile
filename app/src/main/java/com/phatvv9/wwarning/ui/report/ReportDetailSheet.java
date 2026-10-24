@@ -21,12 +21,14 @@ import androidx.appcompat.app.AlertDialog;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.phatvv9.wwarning.R;
+import com.phatvv9.wwarning.data.remote.ReportRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.data.remote.VoteRepository;
 import com.phatvv9.wwarning.model.Report;
@@ -34,6 +36,7 @@ import com.phatvv9.wwarning.model.ReportCluster;
 import com.phatvv9.wwarning.model.UserProfile;
 import com.phatvv9.wwarning.ui.map.MapFragment;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ReportDetailSheet extends BottomSheetDialogFragment {
@@ -58,6 +61,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
     private LinearLayout llClusterSection;
     private TextView tvClusterTitle;
     private TextView tvClusterSubtitle;
+    private MaterialButton btnDeleteAllMyInCluster;
     private LinearLayout llClusterCategories;
 
     private TextView tvCategory;
@@ -134,6 +138,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         llClusterSection = view.findViewById(R.id.llClusterSection);
         tvClusterTitle = view.findViewById(R.id.tvClusterTitle);
         tvClusterSubtitle = view.findViewById(R.id.tvClusterSubtitle);
+        btnDeleteAllMyInCluster = view.findViewById(R.id.btnDeleteAllMyInCluster);
         llClusterCategories = view.findViewById(R.id.llClusterCategories);
 
         tvCategory = view.findViewById(R.id.tvReportCategory);
@@ -204,6 +209,36 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         int pad12 = (int) (12 * density);
         int pad8 = (int) (8 * density);
 
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        final String myUid = currentUser != null ? currentUser.getUid() : null;
+        UserProfile currentProfile = UserRepository.getInstance().getCurrentProfile().getValue();
+        final boolean isAdmin = com.phatvv9.wwarning.util.AdminSessionManager.isAdmin(requireContext())
+                || (currentProfile != null && currentProfile.isAdmin());
+
+        final List<Report> myReportsInCluster = new ArrayList<>();
+        for (Report r : currentClusterInstance.getReports()) {
+            if (isAdmin || (myUid != null && myUid.equals(r.getUserId()))) {
+                myReportsInCluster.add(r);
+            }
+        }
+
+        if (btnDeleteAllMyInCluster != null) {
+            if (!myReportsInCluster.isEmpty()) {
+                btnDeleteAllMyInCluster.setVisibility(View.VISIBLE);
+                btnDeleteAllMyInCluster.setText(isAdmin
+                        ? "🗑️ Xóa tất cả báo cáo trong khu vực này (" + myReportsInCluster.size() + ")"
+                        : "🗑️ Xóa tất cả báo cáo của tôi trong khu vực này (" + myReportsInCluster.size() + ")");
+                btnDeleteAllMyInCluster.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        confirmDeleteAllMyInCluster(myReportsInCluster);
+                    }
+                });
+            } else {
+                btnDeleteAllMyInCluster.setVisibility(View.GONE);
+            }
+        }
+
         List<ReportCluster.CategoryStat> stats = currentClusterInstance.getCategoryStats();
         for (final ReportCluster.CategoryStat stat : stats) {
             LinearLayout item = new LinearLayout(requireContext());
@@ -222,7 +257,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
             lp.bottomMargin = (int) (6 * density);
             item.setLayoutParams(lp);
 
-            // Dòng 1: [Icon + Tên] ---------- [Số lượng báo cáo]
+            // Dòng 1: [Icon + Tên] ---------- [Số lượng báo cáo] [Nút Xóa nếu là của mình/Admin]
             LinearLayout topRow = new LinearLayout(requireContext());
             topRow.setOrientation(LinearLayout.HORIZONTAL);
             topRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -240,6 +275,30 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
             tvCount.setTextSize(13);
             tvCount.setTextColor(0xFF757575);
             topRow.addView(tvCount);
+
+            Report myRepInStat = null;
+            for (Report r : stat.getReports()) {
+                if (isAdmin || (myUid != null && myUid.equals(r.getUserId()))) {
+                    myRepInStat = r;
+                    break;
+                }
+            }
+            if (myRepInStat != null) {
+                final Report toDel = myRepInStat;
+                TextView btnQuickDel = new TextView(requireContext());
+                btnQuickDel.setText("🗑️ Xóa");
+                btnQuickDel.setTextSize(13);
+                btnQuickDel.setTextColor(0xFFD32F2F);
+                btnQuickDel.setTypeface(null, Typeface.BOLD);
+                btnQuickDel.setPadding((int) (12 * density), (int) (4 * density), (int) (4 * density), (int) (4 * density));
+                btnQuickDel.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        confirmDeleteSpecific(toDel);
+                    }
+                });
+                topRow.addView(btnQuickDel);
+            }
 
             item.addView(topRow);
 
@@ -452,31 +511,88 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
                 .show();
     }
 
-    private void deleteReport() {
-        if (reportId == null) return;
+    private void confirmDeleteSpecific(@NonNull final Report report) {
+        if (!isAdded() || report.getId() == null) return;
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Xóa báo cáo")
+                .setMessage("Bạn có chắc chắn muốn xóa cảnh báo " + MapFragment.getCategoryIconAndName(report.getCategoryId()) + " này khỏi bản đồ?")
+                .setPositiveButton("Xóa", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        deleteSpecific(report.getId());
+                    }
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void confirmDeleteAllMyInCluster(@NonNull final List<Report> reports) {
+        if (!isAdded() || reports.isEmpty()) return;
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Xóa tất cả báo cáo")
+                .setMessage("Bạn có chắc chắn muốn xóa tất cả " + reports.size() + " báo cáo trong khu vực này khỏi bản đồ?")
+                .setPositiveButton("Xóa tất cả", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        deleteAllInList(reports);
+                    }
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void deleteSpecific(@NonNull final String idToDelete) {
         setButtonsEnabled(false);
         if (btnDeleteMyReport != null) btnDeleteMyReport.setEnabled(false);
 
-        FirebaseFirestore.getInstance().collection("reports").document(reportId)
-                .update("status", "Deleted")
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void unused) {
-                        if (isAdded()) {
-                            Toast.makeText(requireContext(), "Đã xóa báo cáo thành công", Toast.LENGTH_SHORT).show();
-                            dismiss();
-                        }
+        ReportRepository.getInstance(requireContext()).deleteReport(idToDelete, new ReportRepository.ReportCallback() {
+            @Override
+            public void onSuccess(@NonNull String id) {
+                if (!isAdded()) return;
+                Toast.makeText(requireContext(), "Đã xóa báo cáo thành công", Toast.LENGTH_SHORT).show();
+                if (currentClusterInstance != null) {
+                    currentClusterInstance.removeReport(idToDelete);
+                    if (currentClusterInstance.getReportCount() == 0) {
+                        dismiss();
+                        return;
                     }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        if (isAdded()) {
-                            setButtonsEnabled(true);
-                            if (btnDeleteMyReport != null) btnDeleteMyReport.setEnabled(true);
-                            Toast.makeText(requireContext(), "Lỗi khi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                        }
+                    Report nextPrimary = currentClusterInstance.getPrimaryReport();
+                    if (nextPrimary != null) {
+                        selectReport(nextPrimary);
+                        return;
                     }
-                });
+                }
+                dismiss();
+            }
+
+            @Override
+            public void onError(@NonNull Exception e) {
+                if (!isAdded()) return;
+                setButtonsEnabled(true);
+                if (btnDeleteMyReport != null) btnDeleteMyReport.setEnabled(true);
+                Toast.makeText(requireContext(), "Lỗi khi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void deleteAllInList(@NonNull final List<Report> reports) {
+        ReportRepository repo = ReportRepository.getInstance(requireContext());
+        for (Report r : reports) {
+            if (r.getId() != null) {
+                repo.deleteReport(r.getId(), null);
+                if (currentClusterInstance != null) {
+                    currentClusterInstance.removeReport(r.getId());
+                }
+            }
+        }
+        if (isAdded()) {
+            Toast.makeText(requireContext(), "Đã xóa tất cả báo cáo thành công", Toast.LENGTH_SHORT).show();
+            dismiss();
+        }
+    }
+
+    private void deleteReport() {
+        if (reportId == null) return;
+        deleteSpecific(reportId);
     }
 }

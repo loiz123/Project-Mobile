@@ -40,6 +40,16 @@
                 android:textColor="@android:color/darker_gray"
                 android:textSize="13sp" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDeleteAllMyInCluster"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="🗑️ Xóa tất cả báo cáo của tôi trong khu vực này"
+                android:textColor="#D32F2F"
+                android:visibility="gone" />
+
             <LinearLayout
                 android:id="@+id/llClusterCategories"
                 android:layout_width="match_parent"
