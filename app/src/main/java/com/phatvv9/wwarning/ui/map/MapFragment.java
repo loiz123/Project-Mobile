@@ -63,9 +63,14 @@ import com.phatvv9.wwarning.data.remote.SettingsRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.data.sync.SyncManager;
 import com.phatvv9.wwarning.model.Report;
+import com.phatvv9.wwarning.model.ReportCluster;
 import com.phatvv9.wwarning.ui.report.QuickReportDialog;
 import com.phatvv9.wwarning.ui.report.ReportDetailSheet;
+import com.phatvv9.wwarning.util.GeoUtils;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
@@ -284,8 +289,13 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(@NonNull Marker marker) {
+                marker.showInfoWindow();
                 Object tag = marker.getTag();
-                if (tag instanceof Report) {
+                if (tag instanceof ReportCluster) {
+                    ReportDetailSheet.newInstance((ReportCluster) tag)
+                            .show(getChildFragmentManager(), "ReportDetailSheet");
+                    return true;
+                } else if (tag instanceof Report) {
                     ReportDetailSheet.newInstance((Report) tag)
                             .show(getChildFragmentManager(), "ReportDetailSheet");
                     return true;
@@ -418,13 +428,54 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+    public static final double CLUSTER_RADIUS_METERS = 500.0;
+
+    @NonNull
+    public static List<ReportCluster> clusterReports(@NonNull List<Report> reports, double radiusMeters) {
+        List<ReportCluster> clusters = new ArrayList<>();
+        if (reports.isEmpty()) return clusters;
+
+        List<Report> sorted = new ArrayList<>(reports);
+        Collections.sort(sorted, new Comparator<Report>() {
+            @Override
+            public int compare(Report o1, Report o2) {
+                if (o2.getUpCount() != o1.getUpCount()) {
+                    return Integer.compare(o2.getUpCount(), o1.getUpCount());
+                }
+                long t1 = o1.getCreatedAt() != null ? o1.getCreatedAt().toDate().getTime() : 0L;
+                long t2 = o2.getCreatedAt() != null ? o2.getCreatedAt().toDate().getTime() : 0L;
+                return Long.compare(t2, t1);
+            }
+        });
+
+        for (Report report : sorted) {
+            ReportCluster matched = null;
+            for (ReportCluster cluster : clusters) {
+                double dist = GeoUtils.getDistanceBetween(
+                        report.getLatitude(), report.getLongitude(),
+                        cluster.getCenterLat(), cluster.getCenterLng()
+                );
+                if (dist <= radiusMeters) {
+                    matched = cluster;
+                    break;
+                }
+            }
+            if (matched != null) {
+                matched.addReport(report);
+            } else {
+                clusters.add(new ReportCluster(report));
+            }
+        }
+        return clusters;
+    }
+
     private void renderReportMarkers(@NonNull List<Report> reports) {
         if (mMap == null) return;
         mMap.clear();
 
         long now = System.currentTimeMillis();
         int fadeMinutes = SettingsRepository.getInstance().getFadeMinutes();
-        int renderedCount = 0;
+        List<Report> validReports = new ArrayList<>();
 
         for (Report report : reports) {
             // Lọc bỏ báo cáo đã quá hạn hoặc không còn Active
@@ -439,44 +490,113 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             if (isRiskFilterActive && !isRiskCategory(report.getCategoryId())) {
                 continue;
             }
+            validReports.add(report);
+        }
 
-            LatLng pos = new LatLng(report.getLatitude(), report.getLongitude());
-            String title = getCategoryDisplayName(report.getCategoryId());
-            String snippet = getRelativeTime(report.getCreatedAt());
+        // Gom nhóm trong phạm vi 500m
+        List<ReportCluster> clusters = clusterReports(validReports, CLUSTER_RADIUS_METERS);
+        int renderedCount = 0;
 
-            // Tuần 3: Marker nhiều xác nhận (upCount >= 3) hiển thị nổi bật
-            boolean isHighReputation = report.getUpCount() >= 3;
-            if (isHighReputation) {
-                title = "⭐ " + title + " (" + report.getUpCount() + " xác nhận)";
-                snippet = "Cộng đồng xác thực cao • " + snippet;
-            }
+        for (ReportCluster cluster : clusters) {
+            LatLng pos = new LatLng(cluster.getCenterLat(), cluster.getCenterLng());
+            List<ReportCluster.CategoryStat> stats = cluster.getCategoryStats();
+            if (stats.isEmpty()) continue;
 
-            // Tuần 3: Marker sắp hết hạn (còn dưới fadeMinutes từ app_settings, mặc định 15 phút) đặt alpha 0.5f làm mờ
+            ReportCluster.CategoryStat top1 = stats.get(0);
+            String title;
+            String snippet;
             float alpha = 1.0f;
-            if (report.getExpiresAt() != null) {
-                long remainingMs = report.getExpiresAt().toDate().getTime() - now;
-                if (remainingMs > 0 && remainingMs <= fadeMinutes * 60 * 1000L) {
-                    alpha = 0.5f;
-                    snippet += " (Sắp hết hạn)";
+
+            if (cluster.getReportCount() == 1) {
+                Report r = cluster.getReports().get(0);
+                title = getCategoryIconAndName(r.getCategoryId());
+                snippet = getRelativeTime(r.getCreatedAt());
+
+                boolean isHighReputation = r.getUpCount() >= 3;
+                if (isHighReputation) {
+                    title = "⭐ " + title + " (" + r.getUpCount() + " xác nhận)";
+                    snippet = "Cộng đồng xác thực cao • " + snippet;
                 }
+
+                if (r.getExpiresAt() != null) {
+                    long remainingMs = r.getExpiresAt().toDate().getTime() - now;
+                    if (remainingMs > 0 && remainingMs <= fadeMinutes * 60 * 1000L) {
+                        alpha = 0.5f;
+                        snippet += " (Sắp hết hạn)";
+                    }
+                }
+            } else {
+                // Có từ 2 báo cáo trở lên trong vùng 500m:
+                // Hiện 2 loại hiện tượng được báo cáo nhiều nhất hoặc vote đúng nhiều nhất
+                String name1 = getCategoryIconAndName(top1.getCategoryId());
+                int count1 = top1.getTotalUpCount() > 0 ? top1.getTotalUpCount() : top1.getReportCount();
+
+                if (stats.size() >= 2) {
+                    ReportCluster.CategoryStat top2 = stats.get(1);
+                    String name2 = getCategoryIconAndName(top2.getCategoryId());
+                    int count2 = top2.getTotalUpCount() > 0 ? top2.getTotalUpCount() : top2.getReportCount();
+                    title = name1 + " (" + count1 + ") · " + name2 + " (" + count2 + ")";
+                } else {
+                    title = name1 + " (" + cluster.getReportCount() + " báo cáo)";
+                }
+
+                if (cluster.isHighReputation()) {
+                    title = "⭐ " + title;
+                }
+                snippet = "Vùng 500m: " + cluster.getReportCount() + " báo cáo • Chạm để xem chi tiết";
             }
+
+            float hue = cluster.hasRiskCategory() ? BitmapDescriptorFactory.HUE_RED : getCategoryHue(top1.getCategoryId());
+            boolean isHighZ = cluster.isHighReputation() || cluster.getReportCount() > 1;
 
             MarkerOptions options = new MarkerOptions()
                     .position(pos)
                     .title(title)
                     .snippet(snippet)
                     .alpha(alpha)
-                    .zIndex(isHighReputation ? 2.0f : 1.0f)
-                    .icon(BitmapDescriptorFactory.defaultMarker(getCategoryHue(report.getCategoryId())));
+                    .zIndex(isHighZ ? 2.0f : 1.0f)
+                    .icon(BitmapDescriptorFactory.defaultMarker(hue));
 
             Marker marker = mMap.addMarker(options);
-            if (marker != null) marker.setTag(report);
+            if (marker != null) marker.setTag(cluster);
             renderedCount++;
         }
 
         if (isRiskFilterActive && renderedCount == 0 && isAdded() && getContext() != null) {
             Toast.makeText(getContext(), "Khu vực quanh bạn an toàn, không có rủi ro nào", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @NonNull
+    public static String getCategoryEmoji(@Nullable String categoryId) {
+        if (categoryId == null) return "🌦️";
+        switch (categoryId) {
+            case "cat_nang":
+            case "Sunny":
+                return "☀️";
+            case "cat_mua":
+            case "Rain":
+                return "🌧️";
+            case "cat_suong":
+            case "Fog":
+                return "🌫️";
+            case "cat_bao":
+            case "Storm":
+                return "⛈️";
+            case "cat_ngap":
+            case "Flood":
+                return "🌊";
+            case "cat_cay":
+            case "FallenTree":
+                return "🪵";
+            default:
+                return "🌦️";
+        }
+    }
+
+    @NonNull
+    public static String getCategoryIconAndName(@Nullable String categoryId) {
+        return getCategoryEmoji(categoryId) + " " + getCategoryDisplayName(categoryId);
     }
 
     public static boolean isRiskCategory(@Nullable String categoryId) {
