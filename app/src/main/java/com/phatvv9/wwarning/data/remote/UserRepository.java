@@ -12,6 +12,8 @@ import androidx.lifecycle.MutableLiveData;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.auth.UserInfo;
 import com.google.firebase.firestore.AggregateQuerySnapshot;
 import com.google.firebase.firestore.AggregateSource;
 import com.google.firebase.firestore.DocumentReference;
@@ -124,13 +126,22 @@ public class UserRepository {
     private void createProfile(@NonNull final FirebaseUser user,
                                @NonNull DocumentReference ref,
                                @NonNull final UserCallback callback) {
-        String provider;
-        if (user.isAnonymous()) {
-            provider = FirestoreNames.AuthProvider.GUEST;
-        } else if (user.getEmail() != null) {
-            provider = FirestoreNames.AuthProvider.EMAIL;
-        } else {
-            provider = FirestoreNames.AuthProvider.GOOGLE;
+        String provider = FirestoreNames.AuthProvider.GUEST;
+        if (!user.isAnonymous()) {
+            boolean isGoogle = false;
+            if (user.getProviderData() != null) {
+                for (UserInfo info : user.getProviderData()) {
+                    if (GoogleAuthProvider.PROVIDER_ID.equals(info.getProviderId())) {
+                        isGoogle = true;
+                        break;
+                    }
+                }
+            }
+            if (isGoogle) {
+                provider = FirestoreNames.AuthProvider.GOOGLE;
+            } else if (user.getEmail() != null) {
+                provider = FirestoreNames.AuthProvider.EMAIL;
+            }
         }
 
         final UserProfile profile = new UserProfile(defaultDisplayName(user), provider);

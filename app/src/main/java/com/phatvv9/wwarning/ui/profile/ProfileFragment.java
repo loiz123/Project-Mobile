@@ -167,9 +167,11 @@ public class ProfileFragment extends Fragment {
                     requireContext(), android.R.color.holo_green_dark));
         }
 
-        boolean isGoogle = FirestoreNames.AuthProvider.GOOGLE.equals(profile.getAuthProvider());
-        if (isGoogle) {
+        if (FirestoreNames.AuthProvider.GOOGLE.equals(profile.getAuthProvider())) {
             tvAuthProvider.setText("Tài khoản: Google");
+            btnGoogleSignIn.setVisibility(View.GONE);
+        } else if (FirestoreNames.AuthProvider.EMAIL.equals(profile.getAuthProvider())) {
+            tvAuthProvider.setText("Tài khoản: Email");
             btnGoogleSignIn.setVisibility(View.GONE);
         } else {
             tvAuthProvider.setText("Tài khoản: Ẩn danh (chưa liên kết Google)");
