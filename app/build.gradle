@@ -4,6 +4,14 @@ plugins {
     alias(libs.plugins.secrets.gradle.plugin)
 }
 
+// Đọc key từ local.properties; nếu không có (ví dụ máy Thầy clone về) thì dùng fallback key của nhóm
+Properties localProps = new Properties()
+File localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) {
+    localProps.load(localPropsFile.newDataInputStream())
+}
+def mapsApiKey = localProps.getProperty('MAPS_API_KEY') ?: "AIzaSyCgY9ag4EjvCEC29t8aJVVl2ysciz3DL3E"
+
 android {
     namespace 'com.phatvv9.wwarning'
     compileSdk {
@@ -18,6 +26,7 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders = [MAPS_API_KEY: mapsApiKey]
     }
 
     buildTypes {

@@ -77,7 +77,7 @@
             android:id="@+id/btnGoogleSignIn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="20dp"
             android:text="Đăng nhập Google"
             android:textSize="13sp"
             app:layout_constraintStart_toStartOf="parent"
@@ -89,13 +89,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
+            android:layout_marginTop="20dp"
             android:text="Đăng xuất"
             android:textColor="#D32F2F"
             android:textSize="13sp"
-            app:layout_constraintBottom_toBottomOf="@id/btnGoogleSignIn"
             app:layout_goneMarginStart="0dp"
             app:layout_constraintStart_toEndOf="@id/btnGoogleSignIn"
-            app:layout_constraintTop_toTopOf="@id/btnGoogleSignIn" />
+            app:layout_constraintTop_toBottomOf="@id/barrierAvatarInfo" />
 
         <!-- ==================== CỘT PHẢI: ĐIỂM UY TÍN, SỐ BÁO CÁO & NÚT TEST ==================== -->
         <LinearLayout

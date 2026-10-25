@@ -43,7 +43,6 @@ public class MainActivity extends AppCompatActivity {
         new AuthRepository().signInAnonymously(new AuthRepository.AuthCallback() {
             @Override
             public void onSuccess(@NonNull FirebaseUser user) {
-                Log.d("WWarning", "uid=" + user.getUid());
                 onSignedIn(user);
             }
 

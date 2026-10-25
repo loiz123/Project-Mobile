@@ -8,7 +8,7 @@ WWarning là ứng dụng di động chia sẻ thông tin thời tiết dựa tr
 1. Báo cáo siêu tốc (Quick Report): 
    Giao diện chạm nhanh cho phép người dùng gửi trạng thái thời tiết tại vị trí hiện tại lên hệ thống trong vòng dưới 3 giây.
 2. Bản đồ Live 100% (Real-time Map): 
-   Sử dụng WebSocket và công nghệ phân vùng không gian (Geohashing), bản đồ tự động hiển thị ngay lập tức các marker cảnh báo mới từ những người dùng khác trong bán kính 10km mà không cần tải lại trang.
+   Sử dụng Firestore realtime listener (snapshot listener) và công nghệ phân vùng không gian (Geohashing), bản đồ tự động hiển thị ngay lập tức các marker cảnh báo mới từ những người dùng khác trong bán kính 10km mà không cần tải lại trang.
 3. Nhắc nhở thông minh 15 phút (15-Min Reminder): 
    Hệ thống tự động kích hoạt đồng hồ đếm ngược và đẩy Push Notification đúng 15 phút sau khi người dùng báo cáo, yêu cầu cập nhật lại diễn biến thời tiết (Ví dụ: "Trời đã tạnh mưa chưa?").
 4. Kiểm duyệt bởi cộng đồng (Community Validation): 

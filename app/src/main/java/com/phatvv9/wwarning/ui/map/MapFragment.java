@@ -720,7 +720,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         // Cập nhật toạ độ GPS cho ReportRepository kích hoạt truy vấn bán kính từ app_settings
                         reportRepository.setLocation(location.getLatitude(), location.getLongitude());
 
-                        if (isFirstLocationUpdate) {
+                        if (isFirstLocationUpdate && mMap != null) {
                             isFirstLocationUpdate = false;
                             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
                                     new LatLng(location.getLatitude(), location.getLongitude()), 15f));
@@ -746,7 +746,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         // Cập nhật toạ độ GPS cho ReportRepository
                         reportRepository.setLocation(location.getLatitude(), location.getLongitude());
 
-                        if (isFirstLocationUpdate) {
+                        if (isFirstLocationUpdate && mMap != null) {
                             isFirstLocationUpdate = false;
                             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
                                     new LatLng(location.getLatitude(), location.getLongitude()), 15f));
@@ -762,6 +762,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        mMap = null;
+        isFirstLocationUpdate = (restoredCameraPosition == null);
         etSearchLocation = null;
         btnClearSearch = null;
         if (searchLocationMarker != null) {
