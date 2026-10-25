@@ -109,28 +109,31 @@ public class QuickReportDialog extends Dialog {
     }
 
     private void submitReportByName(@NonNull String name, @NonNull String fallbackId) {
+        final Context context = getContext();
+        final Context appContext = context.getApplicationContext();
+
         String resolvedId = fallbackId;
         String key = name.toLowerCase().trim();
         if (categoryMap.containsKey(key)) {
             resolvedId = categoryMap.get(key);
         }
 
-        if (!com.phatvv9.wwarning.data.sync.SyncManager.getInstance(getContext()).isOnline()) {
-            Toast.makeText(getContext(),
+        if (!com.phatvv9.wwarning.data.sync.SyncManager.getInstance(appContext).isOnline()) {
+            Toast.makeText(appContext,
                     "Đang offline: báo cáo sẽ được gửi khi có mạng", Toast.LENGTH_LONG).show();
         }
 
         repository.createReport(resolvedId, lat, lng, new ReportRepository.ReportCallback() {
             @Override
             public void onSuccess(@NonNull String reportId) {
-                ReminderScheduler.requestNotificationPermissionIfNeeded(getContext());
-                ReminderScheduler.schedule(getContext(), reportId);
-                Toast.makeText(getContext(), "Đã gửi cảnh báo thời tiết thành công!", Toast.LENGTH_SHORT).show();
+                ReminderScheduler.requestNotificationPermissionIfNeeded(context);
+                ReminderScheduler.schedule(appContext, reportId);
+                Toast.makeText(appContext, "Đã gửi cảnh báo thời tiết thành công!", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onError(@NonNull Exception e) {
-                Toast.makeText(getContext(), "Gửi cảnh báo thất bại: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(appContext, "Gửi cảnh báo thất bại: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
         dismiss();

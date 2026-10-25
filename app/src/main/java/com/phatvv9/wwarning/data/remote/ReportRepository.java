@@ -294,7 +294,13 @@ public class ReportRepository {
     }
 
     public void createReport(@NonNull String categoryId, double lat, double lng, @Nullable String severityId, @Nullable final ReportCallback callback) {
-        String userId = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "anonymous";
+        if (auth.getCurrentUser() == null) {
+            if (callback != null) {
+                callback.onError(new IllegalStateException("Người dùng chưa đăng nhập"));
+            }
+            return;
+        }
+        String userId = auth.getCurrentUser().getUid();
         String geohash = GeoUtils.getGeoHash(lat, lng);
 
         int expireMinutes = SettingsRepository.getInstance().getExpireMinutes();
