@@ -1,7 +1,18 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
+    <!-- Base application theme (dark). -->
     <style name="Base.Theme.WWarning" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <!-- Nền xám than thay vì đen tuyền, thẻ sáng hơn nền một bậc để tách lớp -->
+        <item name="android:colorBackground">#121417</item>
+        <item name="colorSurface">#1C1F24</item>
+        <item name="colorSurfaceVariant">#2A2E35</item>
+
+        <!-- Chữ: trắng ngà cho nội dung chính, xám nhạt cho phụ -->
+        <item name="colorOnBackground">#E6E8EB</item>
+        <item name="colorOnSurface">#E6E8EB</item>
+        <item name="colorOnSurfaceVariant">#A9AFB8</item>
+
+        <!-- Màu nhấn dịu hơn trên nền tối -->
+        <item name="colorPrimary">#8AB4F8</item>
+        <item name="colorOnPrimary">#0B1B33</item>
     </style>
 </resources>

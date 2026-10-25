@@ -24,6 +24,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.phatvv9.wwarning.BuildConfig;
 import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.AuthRepository;
 import com.phatvv9.wwarning.data.remote.ReputationRepository;
@@ -71,6 +72,10 @@ public class ProfileFragment extends Fragment {
         btnGoogleSignIn = view.findViewById(R.id.btnGoogleSignIn);
         btnSignOut = view.findViewById(R.id.btnSignOut);
         btnTestNotification = view.findViewById(R.id.btnTestNotification);
+        // Nút thử thông báo chỉ dành cho bản debug/demo, ẩn ở bản release
+        if (btnTestNotification != null && !BuildConfig.DEBUG) {
+            btnTestNotification.setVisibility(View.GONE);
+        }
         llReputationHistory = view.findViewById(R.id.llReputationHistory);
 
         btnGoogleSignIn.setOnClickListener(new View.OnClickListener() {
@@ -141,7 +146,7 @@ public class ProfileFragment extends Fragment {
 
     private void bindProfile(@NonNull UserProfile profile) {
         if (tvUserName == null) return;
-        boolean isAdmin = com.phatvv9.wwarning.util.AdminSessionManager.isAdmin(requireContext()) || profile.isAdmin();
+        boolean isAdmin = profile.isAdmin();
 
         if (isAdmin) {
             tvUserName.setText("Quản trị viên (Admin)");
@@ -149,7 +154,7 @@ public class ProfileFragment extends Fragment {
             tvBannedStatus.setText("👑 Vai trò: Quản trị viên (Admin)");
             tvBannedStatus.setTextColor(ContextCompat.getColor(
                     requireContext(), android.R.color.holo_purple));
-            tvAuthProvider.setText("Tài khoản: admin@wwarning.com");
+            tvAuthProvider.setText("Tài khoản: Quản trị viên");
             btnGoogleSignIn.setVisibility(View.GONE);
             return;
         }
@@ -167,9 +172,11 @@ public class ProfileFragment extends Fragment {
                     requireContext(), android.R.color.holo_green_dark));
         }
 
-        boolean isGoogle = FirestoreNames.AuthProvider.GOOGLE.equals(profile.getAuthProvider());
-        if (isGoogle) {
+        if (FirestoreNames.AuthProvider.GOOGLE.equals(profile.getAuthProvider())) {
             tvAuthProvider.setText("Tài khoản: Google");
+            btnGoogleSignIn.setVisibility(View.GONE);
+        } else if (FirestoreNames.AuthProvider.EMAIL.equals(profile.getAuthProvider())) {
+            tvAuthProvider.setText("Tài khoản: Email");
             btnGoogleSignIn.setVisibility(View.GONE);
         } else {
             tvAuthProvider.setText("Tài khoản: Ẩn danh (chưa liên kết Google)");
@@ -178,8 +185,7 @@ public class ProfileFragment extends Fragment {
     }
 
     private void signOut() {
-        com.phatvv9.wwarning.util.AdminSessionManager.setAdmin(requireContext(), false);
-        userRepository.setExplicitAdminSession(false);
+        userRepository.clearCurrentProfile();
         authRepository.signOut();
         Intent intent = new Intent(requireContext(), LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

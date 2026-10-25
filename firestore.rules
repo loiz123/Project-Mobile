@@ -11,9 +11,12 @@ service cloud.firestore {
       return /databases/$(database)/documents/users/$(uid);
     }
 
-    // Admin: users/{uid}.role == 'Admin' (đặt tay trên Console, client không tự đặt được)
+    // Admin: chỉ dựa trên role đã được cấp trong users/{uid} trên Firestore.
+    // Không cấp quyền chỉ vì email đăng nhập trùng email admin.
     function isAdmin() {
-      return isSignedIn() && get(userDoc(request.auth.uid)).data.role == 'Admin';
+      return isSignedIn()
+        && exists(userDoc(request.auth.uid))
+        && get(userDoc(request.auth.uid)).data.role == 'Admin';
     }
 
     // Bị khóa: users/{uid}.status == 'Banned'. Chưa có hồ sơ thì coi như không bị khóa.
@@ -33,7 +36,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(
              ['displayName', 'authProvider', 'role', 'status',
               'reputationScore', 'reportCount', 'createdAt'])
-        && (request.resource.data.role == 'User' || (request.resource.data.role == 'Admin' && request.auth.token.get('email', '') == 'admin@wwarning.com'))
+        && request.resource.data.role == 'User'
         && request.resource.data.status == 'Active'
         && request.resource.data.reputationScore == 100
         && request.resource.data.reportCount == 0
@@ -89,7 +92,14 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'Active'
         && request.resource.data.get('upCount', 0) == 0
-        && request.resource.data.get('downCount', 0) == 0;
+        && request.resource.data.get('downCount', 0) == 0
+        && request.resource.data.categoryId is string
+        && request.resource.data.geohash is string
+        && request.resource.data.latitude is number
+        && request.resource.data.longitude is number
+        && request.resource.data.latitude >= -90 && request.resource.data.latitude <= 90
+        && request.resource.data.longitude >= -180 && request.resource.data.longitude <= 180
+        && request.resource.data.expiresAt is timestamp;
 
       allow update: if isSignedIn() && (
         // Chủ bài viết tự xóa hoặc ẩn báo cáo của mình
@@ -111,7 +121,8 @@ service cloud.firestore {
           && math.abs(request.resource.data.get('upCount', 0) - resource.data.get('upCount', 0)) <= 1
           && math.abs(request.resource.data.get('downCount', 0) - resource.data.get('downCount', 0)) <= 1
           && (request.resource.data.status == resource.data.status
-              || request.resource.data.status == 'Hidden'))
+              || (request.resource.data.status == 'Hidden'
+                  && request.resource.data.get('downCount', 0) > request.resource.data.get('upCount', 0))))
       );
 
       allow delete: if false;

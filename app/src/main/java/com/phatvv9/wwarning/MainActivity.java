@@ -17,7 +17,6 @@ import com.phatvv9.wwarning.data.remote.AuthRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.databinding.ActivityMainBinding;
 import com.phatvv9.wwarning.model.UserProfile;
-import com.phatvv9.wwarning.util.AdminSessionManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -36,15 +35,14 @@ public class MainActivity extends AppCompatActivity {
             NavigationUI.setupWithNavController(binding.bottomNavigation, navController);
         }
 
-        // Mặc định ẩn tab Admin; chỉ hiện khi users/{uid}.role == Admin hoặc đang đăng nhập quyền Admin
-        setAdminTabVisible(AdminSessionManager.isAdmin(this) || UserRepository.getInstance().isAdmin());
+        // Mặc định ẩn tab Admin cho đến khi hồ sơ Firestore xác nhận role = Admin.
+        setAdminTabVisible(UserRepository.getInstance().isAdmin());
         observeProfile();
 
         // Đăng nhập ẩn danh -> đảm bảo có users/{uid} -> ghi thiết bị -> nghe hồ sơ realtime
         new AuthRepository().signInAnonymously(new AuthRepository.AuthCallback() {
             @Override
             public void onSuccess(@NonNull FirebaseUser user) {
-                Log.d("WWarning", "uid=" + user.getUid());
                 onSignedIn(user);
             }
 
@@ -75,9 +73,7 @@ public class MainActivity extends AppCompatActivity {
         UserRepository.getInstance().getCurrentProfile().observe(this, new Observer<UserProfile>() {
             @Override
             public void onChanged(UserProfile profile) {
-                setAdminTabVisible(AdminSessionManager.isAdmin(MainActivity.this)
-                        || UserRepository.getInstance().isAdmin()
-                        || (profile != null && profile.isAdmin()));
+                setAdminTabVisible(profile != null && profile.isAdmin());
                 if (profile != null && profile.isBanned() && !bannedDialogShown) {
                     bannedDialogShown = true;
                     showBannedDialog();
