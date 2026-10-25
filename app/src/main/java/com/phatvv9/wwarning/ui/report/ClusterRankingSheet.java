@@ -173,4 +173,10 @@ public class ClusterRankingSheet extends BottomSheetDialogFragment {
         }
         return 0xFF212121;
     }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        currentCluster = null;
+    }
 }

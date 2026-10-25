@@ -635,4 +635,10 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         if (reportId == null) return;
         deleteSpecific(reportId);
     }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        currentClusterInstance = null;
+    }
 }
