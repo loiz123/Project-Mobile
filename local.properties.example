@@ -1,0 +1,3 @@
+## Copy file nay thanh local.properties (khong commit)
+sdk.dir=C\:\\Users\\<ten-ban>\\AppData\\Local\\Android\\Sdk
+MAPS_API_KEY=YOUR_MAPS_API_KEY

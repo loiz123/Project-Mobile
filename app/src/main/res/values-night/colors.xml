@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Admin screen (dark): sáng hơn để đủ tương phản trên nền tối -->
+    <color name="admin_card_stroke">#3A3F47</color>
+    <color name="admin_status_visible">#81C784</color>
+    <color name="admin_status_hidden">#FFB74D</color>
+    <color name="admin_status_deleted">#EF9A9A</color>
+    <color name="admin_negative">#EF9A9A</color>
+</resources>

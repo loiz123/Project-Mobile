@@ -169,7 +169,10 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
             if (llClusterSection != null) {
                 llClusterSection.setVisibility(View.VISIBLE);
                 if (tvClusterTitle != null) {
-                    tvClusterTitle.setText("📍 Tổng hợp khu vực 500m (" + currentClusterInstance.getReportCount() + " báo cáo)");
+                    tvClusterTitle.setText("🏆 Bảng xếp hạng khu vực 500m (" + currentClusterInstance.getReportCount() + " báo cáo)");
+                }
+                if (tvClusterSubtitle != null) {
+                    tvClusterSubtitle.setText("Điểm = số báo cáo + số vote đúng. Chạm một dòng để xem chi tiết và bình chọn.");
                 }
                 populateClusterCategories();
             }
@@ -212,8 +215,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         final String myUid = currentUser != null ? currentUser.getUid() : null;
         UserProfile currentProfile = UserRepository.getInstance().getCurrentProfile().getValue();
-        final boolean isAdmin = com.phatvv9.wwarning.util.AdminSessionManager.isAdmin(requireContext())
-                || (currentProfile != null && currentProfile.isAdmin());
+        final boolean isAdmin = currentProfile != null && currentProfile.isAdmin();
 
         final List<Report> myReportsInCluster = new ArrayList<>();
         for (Report r : currentClusterInstance.getReports()) {
@@ -241,15 +243,18 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
 
         List<ReportCluster.CategoryStat> stats = currentClusterInstance.getCategoryStats();
         for (final ReportCluster.CategoryStat stat : stats) {
+            final int rank = stats.indexOf(stat) + 1;
             LinearLayout item = new LinearLayout(requireContext());
             item.setOrientation(LinearLayout.VERTICAL);
             item.setPadding(pad12, pad8, pad12, pad8);
 
             GradientDrawable gd = new GradientDrawable();
             boolean isCurrentCat = stat.getCategoryId() != null && stat.getCategoryId().equals(categoryId);
-            gd.setColor(isCurrentCat ? 0xFFEDE7F6 : 0xFFF5F6F9);
+            boolean isTop = rank == 1;
+            gd.setColor(isCurrentCat ? 0xFFEDE7F6 : (isTop ? 0xFFFFF8E1 : 0xFFF5F6F9));
             gd.setCornerRadius(10 * density);
-            gd.setStroke((int) (1 * density), isCurrentCat ? 0xFF7E57C2 : 0xFFE0E0E0);
+            gd.setStroke((int) (1 * density),
+                    isCurrentCat ? 0xFF7E57C2 : (isTop ? 0xFFFFB300 : 0xFFE0E0E0));
             item.setBackground(gd);
 
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -263,7 +268,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
             topRow.setGravity(Gravity.CENTER_VERTICAL);
 
             TextView tvName = new TextView(requireContext());
-            tvName.setText(MapFragment.getCategoryIconAndName(stat.getCategoryId()));
+            tvName.setText(rankLabel(rank) + "  " + MapFragment.getCategoryIconAndName(stat.getCategoryId()));
             tvName.setTextSize(15);
             tvName.setTypeface(null, Typeface.BOLD);
             tvName.setTextColor(0xFF212121);
@@ -271,7 +276,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
             topRow.addView(tvName, lpName);
 
             TextView tvCount = new TextView(requireContext());
-            tvCount.setText(stat.getReportCount() + " báo cáo");
+            tvCount.setText(stat.getScore() + " điểm");
             tvCount.setTextSize(13);
             tvCount.setTextColor(0xFF757575);
             topRow.addView(tvCount);
@@ -312,7 +317,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
             bottomRow.setLayoutParams(lpBottom);
 
             TextView tvVotes = new TextView(requireContext());
-            String voteText = "👍 " + stat.getTotalUpCount() + " Hữu ích   ·   👎 " + stat.getTotalDownCount() + " Báo sai";
+            String voteText = "📝 " + stat.getReportCount() + " báo cáo   ·   👍 " + stat.getTotalUpCount() + " vote đúng   ·   👎 " + stat.getTotalDownCount() + " báo sai";
             if (stat.getTotalUpCount() >= 3) {
                 voteText += "   ⭐ (Xác thực cao)";
             }
@@ -337,6 +342,15 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         }
     }
 
+    private static String rankLabel(int rank) {
+        switch (rank) {
+            case 1: return "🥇";
+            case 2: return "🥈";
+            case 3: return "🥉";
+            default: return rank + ".";
+        }
+    }
+
     private void selectReport(@NonNull Report report) {
         this.reportId = report.getId();
         this.categoryId = report.getCategoryId();
@@ -358,8 +372,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
 
         boolean isMyReport = myUid != null && authorId != null && authorId.equals(myUid);
         UserProfile currentProfile = UserRepository.getInstance().getCurrentProfile().getValue();
-        boolean isAdmin = com.phatvv9.wwarning.util.AdminSessionManager.isAdmin(requireContext())
-                || (currentProfile != null && currentProfile.isAdmin());
+        boolean isAdmin = currentProfile != null && currentProfile.isAdmin();
 
         if (isMyReport || isAdmin) {
             btnDeleteMyReport.setVisibility(View.VISIBLE);
@@ -576,23 +589,56 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
     }
 
     private void deleteAllInList(@NonNull final List<Report> reports) {
-        ReportRepository repo = ReportRepository.getInstance(requireContext());
+        final ReportRepository repo = ReportRepository.getInstance(requireContext());
+        final java.util.concurrent.atomic.AtomicInteger pending =
+                new java.util.concurrent.atomic.AtomicInteger(0);
+        final java.util.concurrent.atomic.AtomicInteger failed =
+                new java.util.concurrent.atomic.AtomicInteger(0);
         for (Report r : reports) {
-            if (r.getId() != null) {
-                repo.deleteReport(r.getId(), null);
-                if (currentClusterInstance != null) {
-                    currentClusterInstance.removeReport(r.getId());
-                }
-            }
+            if (r.getId() != null) pending.incrementAndGet();
         }
-        if (isAdded()) {
-            Toast.makeText(requireContext(), "Đã xóa tất cả báo cáo thành công", Toast.LENGTH_SHORT).show();
+        if (pending.get() == 0) {
             dismiss();
+            return;
         }
+        for (Report r : reports) {
+            if (r.getId() == null) continue;
+            repo.deleteReport(r.getId(), new ReportRepository.ReportCallback() {
+                @Override
+                public void onSuccess(@NonNull String id) {
+                    if (currentClusterInstance != null) currentClusterInstance.removeReport(id);
+                    finishDeleteAll(pending, failed);
+                }
+
+                @Override
+                public void onError(@NonNull Exception e) {
+                    failed.incrementAndGet();
+                    finishDeleteAll(pending, failed);
+                }
+            });
+        }
+    }
+
+    private void finishDeleteAll(java.util.concurrent.atomic.AtomicInteger pending,
+                                 java.util.concurrent.atomic.AtomicInteger failed) {
+        if (pending.decrementAndGet() > 0 || !isAdded()) return;
+        if (failed.get() == 0) {
+            Toast.makeText(requireContext(), "Đã xóa tất cả báo cáo", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(requireContext(),
+                    "Có " + failed.get() + " báo cáo không xóa được", Toast.LENGTH_LONG).show();
+        }
+        dismiss();
     }
 
     private void deleteReport() {
         if (reportId == null) return;
         deleteSpecific(reportId);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        currentClusterInstance = null;
     }
 }

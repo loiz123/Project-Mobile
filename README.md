@@ -8,7 +8,7 @@ WWarning là ứng dụng di động chia sẻ thông tin thời tiết dựa tr
 1. Báo cáo siêu tốc (Quick Report): 
    Giao diện chạm nhanh cho phép người dùng gửi trạng thái thời tiết tại vị trí hiện tại lên hệ thống trong vòng dưới 3 giây.
 2. Bản đồ Live 100% (Real-time Map): 
-   Sử dụng WebSocket và công nghệ phân vùng không gian (Geohashing), bản đồ tự động hiển thị ngay lập tức các marker cảnh báo mới từ những người dùng khác trong bán kính 10km mà không cần tải lại trang.
+   Sử dụng Firestore realtime listener (snapshot listener) và công nghệ phân vùng không gian (Geohashing), bản đồ tự động hiển thị ngay lập tức các marker cảnh báo mới từ những người dùng khác trong bán kính 10km mà không cần tải lại trang.
 3. Nhắc nhở thông minh 15 phút (15-Min Reminder): 
    Hệ thống tự động kích hoạt đồng hồ đếm ngược và đẩy Push Notification đúng 15 phút sau khi người dùng báo cáo, yêu cầu cập nhật lại diễn biến thời tiết (Ví dụ: "Trời đã tạnh mưa chưa?").
 4. Kiểm duyệt bởi cộng đồng (Community Validation): 
@@ -32,3 +32,11 @@ Dự án được xây dựng và thiết kế bởi 4 thành viên, mỗi ngư�
 * Hà Ngọc Thiện - @hntrhunter
 * Tiêu Lâm Định Quốc - @dinhquoc03032626
 * Hồ Duy Hải - @haiho2365-source
+
+## ⚙️ Cài đặt để build
+
+1. Copy `local.properties.example` thành `local.properties` (file này đã nằm trong `.gitignore`, **không commit**).
+2. Điền `sdk.dir` và `MAPS_API_KEY` (key Maps SDK for Android, đã giới hạn theo package `com.phatvv9.wwarning` và SHA-1 của máy bạn).
+3. Đặt `google-services.json` vào thư mục `app/`.
+4. Dán `firestore.rules` vào Firebase Console → Firestore → Rules → Publish.
+5. Tài khoản Admin: đăng nhập app một lần, rồi vào Firestore sửa `users/{uid}.role` thành `Admin` (rules không cho app tự nâng quyền).
