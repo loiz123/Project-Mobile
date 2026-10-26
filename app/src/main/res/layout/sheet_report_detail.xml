@@ -76,6 +76,8 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <include layout="@layout/view_report_image" />
+
         <TextView
             android:id="@+id/tvReportCategory"
             android:layout_width="match_parent"
