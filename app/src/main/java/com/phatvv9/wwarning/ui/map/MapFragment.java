@@ -65,6 +65,7 @@ import com.phatvv9.wwarning.data.sync.SyncManager;
 import com.phatvv9.wwarning.model.Report;
 import com.phatvv9.wwarning.model.ReportCluster;
 import com.phatvv9.wwarning.ui.report.QuickReportDialog;
+import com.phatvv9.wwarning.ui.report.ClusterRankingSheet;
 import com.phatvv9.wwarning.ui.report.ReportDetailSheet;
 import com.phatvv9.wwarning.util.GeoUtils;
 
@@ -289,13 +290,21 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(@NonNull Marker marker) {
-                marker.showInfoWindow();
                 Object tag = marker.getTag();
                 if (tag instanceof ReportCluster) {
-                    ReportDetailSheet.newInstance((ReportCluster) tag)
-                            .show(getChildFragmentManager(), "ReportDetailSheet");
+                    ReportCluster cluster = (ReportCluster) tag;
+                    if (cluster.getReportCount() > 1) {
+                        // Cụm nhiều báo cáo: mở overlay bảng xếp hạng, không hiện info window
+                        ClusterRankingSheet.newInstance(cluster)
+                                .show(getChildFragmentManager(), "ClusterRankingSheet");
+                    } else {
+                        marker.showInfoWindow();
+                        ReportDetailSheet.newInstance(cluster)
+                                .show(getChildFragmentManager(), "ReportDetailSheet");
+                    }
                     return true;
                 } else if (tag instanceof Report) {
+                    marker.showInfoWindow();
                     ReportDetailSheet.newInstance((Report) tag)
                             .show(getChildFragmentManager(), "ReportDetailSheet");
                     return true;
@@ -498,7 +507,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         int renderedCount = 0;
 
         for (ReportCluster cluster : clusters) {
-            LatLng pos = new LatLng(cluster.getCenterLat(), cluster.getCenterLng());
+            LatLng pos = new LatLng(cluster.getDisplayLat(), cluster.getDisplayLng());
             List<ReportCluster.CategoryStat> stats = cluster.getCategoryStats();
             if (stats.isEmpty()) continue;
 
@@ -546,8 +555,15 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 snippet = "Vùng 500m: " + cluster.getReportCount() + " báo cáo • Chạm để xem chi tiết";
             }
 
-            float hue = cluster.hasRiskCategory() ? BitmapDescriptorFactory.HUE_RED : getCategoryHue(top1.getCategoryId());
             boolean isHighZ = cluster.isHighReputation() || cluster.getReportCount() > 1;
+
+            // Icon tùy chỉnh: cụm hiện emoji của 2 hiện tượng đứng đầu bảng xếp hạng
+            String emoji1 = getCategoryEmoji(top1.getCategoryId());
+            String emoji2 = (cluster.getReportCount() > 1 && stats.size() >= 2)
+                    ? getCategoryEmoji(stats.get(1).getCategoryId()) : null;
+            int iconColor = cluster.hasRiskCategory()
+                    ? 0xFFD32F2F : MarkerIconFactory.getCategoryColor(top1.getCategoryId());
+            float density = getResources().getDisplayMetrics().density;
 
             MarkerOptions options = new MarkerOptions()
                     .position(pos)
@@ -555,7 +571,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                     .snippet(snippet)
                     .alpha(alpha)
                     .zIndex(isHighZ ? 2.0f : 1.0f)
-                    .icon(BitmapDescriptorFactory.defaultMarker(hue));
+                    .anchor(0.5f, 1.0f)
+                    .icon(MarkerIconFactory.create(density, emoji1, emoji2,
+                            cluster.getReportCount() > 1 ? cluster.getReportCount() : 0, iconColor));
 
             Marker marker = mMap.addMarker(options);
             if (marker != null) marker.setTag(cluster);
@@ -702,7 +720,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         // Cập nhật toạ độ GPS cho ReportRepository kích hoạt truy vấn bán kính từ app_settings
                         reportRepository.setLocation(location.getLatitude(), location.getLongitude());
 
-                        if (isFirstLocationUpdate) {
+                        if (isFirstLocationUpdate && mMap != null) {
                             isFirstLocationUpdate = false;
                             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
                                     new LatLng(location.getLatitude(), location.getLongitude()), 15f));
@@ -712,6 +730,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             });
 
             // 2. Lắng nghe cập nhật vị trí thời gian thực (tự động zoom ngay khi có tín hiệu GPS)
+            if (locationCallback != null) {
+                fusedLocationClient.removeLocationUpdates(locationCallback);
+            }
             LocationRequest locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
                     .setMinUpdateIntervalMillis(2000)
                     .build();
@@ -725,7 +746,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         // Cập nhật toạ độ GPS cho ReportRepository
                         reportRepository.setLocation(location.getLatitude(), location.getLongitude());
 
-                        if (isFirstLocationUpdate) {
+                        if (isFirstLocationUpdate && mMap != null) {
                             isFirstLocationUpdate = false;
                             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
                                     new LatLng(location.getLatitude(), location.getLongitude()), 15f));
@@ -741,6 +762,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        mMap = null;
+        isFirstLocationUpdate = (restoredCameraPosition == null);
         etSearchLocation = null;
         btnClearSearch = null;
         if (searchLocationMarker != null) {

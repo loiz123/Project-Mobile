@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:fillViewport="true">
@@ -169,6 +170,19 @@
             android:textColor="#D32F2F"
             android:visibility="gone"
             app:strokeColor="#D32F2F" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBanAuthor"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="🚫 Cấm người đăng"
+            android:textColor="#B71C1C"
+            android:visibility="gone"
+            tools:visibility="visible"
+            app:strokeColor="#B71C1C" />
+
 
     </LinearLayout>
 </ScrollView>
