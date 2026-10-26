@@ -3,17 +3,28 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:paddingBottom="72dp"
     android:fillViewport="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="24dp">
+        android:padding="20dp">
 
+        <!-- Guideline chia đôi màn hình ngang: Cột trái cho Avatar & Thông tin, Cột phải cho Thống kê -->
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guidelineCenter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.46" />
+
+        <!-- ==================== CỘT TRÁI: AVATAR & THÔNG TIN NGƯỜI DÙNG ==================== -->
         <ImageView
             android:id="@+id/ivAvatar"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
             android:contentDescription="Avatar người dùng"
             android:src="@android:drawable/sym_def_app_icon"
             app:layout_constraintStart_toStartOf="parent"
@@ -21,35 +32,81 @@
 
         <TextView
             android:id="@+id/tvUserName"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
+            android:layout_marginStart="14dp"
             android:text="Tên người dùng"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:textStyle="bold"
+            app:layout_constraintEnd_toStartOf="@id/guidelineCenter"
             app:layout_constraintStart_toEndOf="@id/ivAvatar"
             app:layout_constraintTop_toTopOf="@id/ivAvatar" />
 
         <TextView
             android:id="@+id/tvBannedStatus"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="Trạng thái: Hoạt động"
             android:textColor="@android:color/holo_green_dark"
-            android:textSize="14sp"
+            android:textSize="13sp"
+            app:layout_constraintEnd_toStartOf="@id/guidelineCenter"
             app:layout_constraintStart_toStartOf="@id/tvUserName"
             app:layout_constraintTop_toBottomOf="@id/tvUserName" />
 
+        <TextView
+            android:id="@+id/tvAuthProvider"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Tài khoản: Ẩn danh (chưa liên kết Google)"
+            android:textSize="12sp"
+            app:layout_constraintEnd_toStartOf="@id/guidelineCenter"
+            app:layout_constraintStart_toStartOf="@id/tvUserName"
+            app:layout_constraintTop_toBottomOf="@id/tvBannedStatus" />
+
+        <!-- Barrier bên dưới khối thông tin user & avatar -->
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/barrierAvatarInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:barrierDirection="bottom"
+            app:constraint_referenced_ids="ivAvatar,tvAuthProvider" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGoogleSignIn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Đăng nhập Google"
+            android:textSize="13sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/barrierAvatarInfo" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSignOut"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="20dp"
+            android:text="Đăng xuất"
+            android:textColor="#D32F2F"
+            android:textSize="13sp"
+            app:layout_goneMarginStart="0dp"
+            app:layout_constraintStart_toEndOf="@id/btnGoogleSignIn"
+            app:layout_constraintTop_toBottomOf="@id/barrierAvatarInfo" />
+
+        <!-- ==================== CỘT PHẢI: ĐIỂM UY TÍN, SỐ BÁO CÁO & NÚT TEST ==================== -->
         <LinearLayout
             android:id="@+id/llStats"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
-            android:orientation="horizontal"
+            android:layout_marginStart="16dp"
             android:baselineAligned="false"
+            android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/tvUserName"
+            app:layout_constraintStart_toEndOf="@id/guidelineCenter"
             app:layout_constraintTop_toTopOf="parent">
 
             <LinearLayout
@@ -71,7 +128,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Điểm uy tín"
-                    android:textSize="12sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <LinearLayout
@@ -93,42 +150,39 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Số báo cáo"
-                    android:textSize="12sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
         </LinearLayout>
 
-
-        <TextView
-            android:id="@+id/tvAuthProvider"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Tài khoản: Ẩn danh"
-            android:textSize="14sp"
-            app:layout_constraintStart_toStartOf="@id/tvUserName"
-            app:layout_constraintTop_toBottomOf="@id/tvBannedStatus" />
-
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnGoogleSignIn"
-            android:layout_width="wrap_content"
+            android:id="@+id/btnTestNotification"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Đăng nhập Google"
-            app:layout_constraintStart_toStartOf="@id/tvUserName"
-            app:layout_constraintTop_toBottomOf="@id/tvAuthProvider" />
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="12dp"
+            android:text="🔔 Bắn thông báo thử nghiệm (5s)"
+            android:textColor="#5E35B1"
+            android:textSize="13sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/guidelineCenter"
+            app:layout_constraintTop_toBottomOf="@id/llStats"
+            app:strokeColor="#7E57C2"
+            app:strokeWidth="1dp" />
 
+        <!-- ==================== PHẦN DƯỚI: LỊCH SỬ ĐIỂM UY TÍN ==================== -->
         <androidx.constraintlayout.widget.Barrier
             android:id="@+id/barrierHeader"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:barrierDirection="bottom"
-            app:constraint_referenced_ids="ivAvatar,llStats,tvAuthProvider,btnGoogleSignIn" />
+            app:constraint_referenced_ids="btnGoogleSignIn,btnSignOut,btnTestNotification,barrierAvatarInfo" />
 
         <TextView
             android:id="@+id/tvHistoryTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="20dp"
             android:text="Lịch sử điểm uy tín"
             android:textSize="16sp"
             android:textStyle="bold"

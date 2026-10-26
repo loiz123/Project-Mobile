@@ -12,6 +12,8 @@ import androidx.lifecycle.MutableLiveData;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.auth.UserInfo;
 import com.google.firebase.firestore.AggregateQuerySnapshot;
 import com.google.firebase.firestore.AggregateSource;
 import com.google.firebase.firestore.DocumentReference;
@@ -80,9 +82,20 @@ public class UserRepository {
         return profile != null && profile.isBanned();
     }
 
+    public boolean isAdmin() {
+        UserProfile profile = currentProfile.getValue();
+        return profile != null && profile.isAdmin();
+    }
+
+    /** Xóa hồ sơ đang giữ trong bộ nhớ khi đăng xuất/đổi tài khoản. */
+    public void clearCurrentProfile() {
+        stopListening();
+        currentProfile.setValue(null);
+    }
+
     /**
-     * Đảm bảo users/{uid} tồn tại. Có rồi thì đọc ra, chưa có thì tạo mới
-     * (reputationScore = 100, role = User, status = Active).
+     * Đảm bảo users/{uid} tồn tại. Hồ sơ mới luôn bắt đầu với role = User.
+     * Quyền Admin phải được cấp riêng trên Firestore bởi người có thẩm quyền.
      */
     public void ensureUserProfile(@NonNull final FirebaseUser user,
                                   @NonNull final UserCallback callback) {
@@ -94,6 +107,7 @@ public class UserRepository {
                         if (doc.exists()) {
                             UserProfile existing = doc.toObject(UserProfile.class);
                             if (existing != null) {
+                                existing.setId(user.getUid());
                                 callback.onSuccess(existing);
                                 return;
                             }
@@ -112,10 +126,26 @@ public class UserRepository {
     private void createProfile(@NonNull final FirebaseUser user,
                                @NonNull DocumentReference ref,
                                @NonNull final UserCallback callback) {
-        String provider = user.isAnonymous()
-                ? FirestoreNames.AuthProvider.GUEST
-                : FirestoreNames.AuthProvider.GOOGLE;
+        String provider = FirestoreNames.AuthProvider.GUEST;
+        if (!user.isAnonymous()) {
+            boolean isGoogle = false;
+            if (user.getProviderData() != null) {
+                for (UserInfo info : user.getProviderData()) {
+                    if (GoogleAuthProvider.PROVIDER_ID.equals(info.getProviderId())) {
+                        isGoogle = true;
+                        break;
+                    }
+                }
+            }
+            if (isGoogle) {
+                provider = FirestoreNames.AuthProvider.GOOGLE;
+            } else if (user.getEmail() != null) {
+                provider = FirestoreNames.AuthProvider.EMAIL;
+            }
+        }
+
         final UserProfile profile = new UserProfile(defaultDisplayName(user), provider);
+        // UserProfile constructor sets role = User. Never promote based on email.
         ref.set(profile)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
@@ -189,6 +219,7 @@ public class UserRepository {
     /** Bắt đầu nghe users/{uid}. Gọi lại với uid khác sẽ thay listener cũ. */
     public void startListening(@NonNull String uid) {
         stopListening();
+        currentProfile.setValue(null);
         profileListener = db.collection(FirestoreNames.USERS).document(uid)
                 .addSnapshotListener(new EventListener<DocumentSnapshot>() {
                     @Override
@@ -199,7 +230,13 @@ public class UserRepository {
                             return;
                         }
                         if (snapshot != null && snapshot.exists()) {
-                            currentProfile.setValue(snapshot.toObject(UserProfile.class));
+                            UserProfile profile = snapshot.toObject(UserProfile.class);
+                            if (profile != null) {
+                                profile.setId(snapshot.getId());
+                            }
+                            currentProfile.setValue(profile);
+                        } else {
+                            currentProfile.setValue(null);
                         }
                     }
                 });
@@ -241,6 +278,7 @@ public class UserRepository {
     public void countMyReports(@NonNull String uid, @NonNull final CountCallback callback) {
         db.collection(FirestoreNames.REPORTS)
                 .whereEqualTo("userId", uid)
+                .whereEqualTo("status", FirestoreNames.ReportStatus.ACTIVE)
                 .count()
                 .get(AggregateSource.SERVER)
                 .addOnSuccessListener(new OnSuccessListener<AggregateQuerySnapshot>() {

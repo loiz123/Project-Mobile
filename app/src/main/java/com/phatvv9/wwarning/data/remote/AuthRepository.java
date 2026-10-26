@@ -114,6 +114,34 @@ public class AuthRepository {
     }
 
     /**
+     * Đăng nhập bằng Email và Password (dành cho Quản trị viên Admin).
+     * Xác thực thông tin tài khoản admin và cấp quyền quản trị viên.
+     */
+    public void signInWithEmailAndPassword(@NonNull final String email,
+                                           @NonNull final String password,
+                                           @NonNull final AuthCallback callback) {
+        auth.signInWithEmailAndPassword(email, password)
+                .addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+                    @Override
+                    public void onSuccess(AuthResult result) {
+                        FirebaseUser user = result.getUser();
+                        if (user != null) {
+                            callback.onSuccess(user);
+                        } else {
+                            callback.onError(new IllegalStateException(
+                                    "Đăng nhập không trả về user"));
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        callback.onError(e);
+                    }
+                });
+    }
+
+    /**
      * Mở hộp thoại chọn tài khoản Google (Credential Manager), rồi:
      * - đang ẩn danh: liên kết Google vào uid hiện tại (giữ nguyên uid, báo cáo cũ vẫn là của bạn);
      * - Google đó đã gắn với uid khác: đăng nhập vào uid đó.

@@ -23,20 +23,12 @@ public class NetworkUtils {
         if (activeNetwork == null) return false;
 
         NetworkCapabilities capabilities = cm.getNetworkCapabilities(activeNetwork);
-        return capabilities != null && (
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
-        );
+        return capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
     }
 
-    public static ConnectivityManager.NetworkCallback registerNetworkCallback(@NonNull Context context, @NonNull final NetworkCallbackListener listener) {
+    public static ConnectivityManager.NetworkCallback registerNetworkCallback(@NonNull final Context context, @NonNull final NetworkCallbackListener listener) {
         final ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) return null;
-
-        NetworkRequest request = new NetworkRequest.Builder()
-                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                .build();
 
         ConnectivityManager.NetworkCallback callback = new ConnectivityManager.NetworkCallback() {
             @Override
@@ -46,11 +38,24 @@ public class NetworkUtils {
 
             @Override
             public void onLost(@NonNull Network network) {
-                listener.onNetworkChanged(false);
+                listener.onNetworkChanged(isNetworkAvailable(context));
+            }
+
+            @Override
+            public void onCapabilitiesChanged(@NonNull Network network, @NonNull NetworkCapabilities capabilities) {
+                boolean hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+                listener.onNetworkChanged(hasInternet);
             }
         };
 
-        cm.registerNetworkCallback(request, callback);
+        try {
+            cm.registerDefaultNetworkCallback(callback);
+        } catch (Exception e) {
+            NetworkRequest request = new NetworkRequest.Builder()
+                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .build();
+            cm.registerNetworkCallback(request, callback);
+        }
         return callback;
     }
 

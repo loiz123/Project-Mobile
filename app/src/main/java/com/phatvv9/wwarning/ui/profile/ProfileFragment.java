@@ -1,5 +1,6 @@
 package com.phatvv9.wwarning.ui.profile;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,18 +12,30 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.OnApplyWindowInsetsListener;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.phatvv9.wwarning.BuildConfig;
 import com.phatvv9.wwarning.R;
+import com.phatvv9.wwarning.data.remote.AdminRepository;
 import com.phatvv9.wwarning.data.remote.AuthRepository;
 import com.phatvv9.wwarning.data.remote.ReputationRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.model.ReputationLog;
 import com.phatvv9.wwarning.model.UserProfile;
+import com.phatvv9.wwarning.ui.login.LoginActivity;
 import com.phatvv9.wwarning.util.FirestoreNames;
+import com.phatvv9.wwarning.worker.ReminderScheduler;
 
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -40,6 +53,8 @@ public class ProfileFragment extends Fragment {
     private TextView tvContributionsCount;
     private TextView tvAuthProvider;
     private Button btnGoogleSignIn;
+    private Button btnSignOut;
+    private Button btnTestNotification;
     private LinearLayout llReputationHistory;
 
     @Nullable
@@ -57,12 +72,46 @@ public class ProfileFragment extends Fragment {
         tvContributionsCount = view.findViewById(R.id.tvContributionsCount);
         tvAuthProvider = view.findViewById(R.id.tvAuthProvider);
         btnGoogleSignIn = view.findViewById(R.id.btnGoogleSignIn);
+        btnSignOut = view.findViewById(R.id.btnSignOut);
+        btnTestNotification = view.findViewById(R.id.btnTestNotification);
+        // Nút thử thông báo chỉ dành cho bản debug/demo, ẩn ở bản release
+        if (btnTestNotification != null && !BuildConfig.DEBUG) {
+            btnTestNotification.setVisibility(View.GONE);
+        }
         llReputationHistory = view.findViewById(R.id.llReputationHistory);
 
         btnGoogleSignIn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startGoogleSignIn();
+            }
+        });
+
+        if (btnSignOut != null) {
+            btnSignOut.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    signOut();
+                }
+            });
+        }
+
+        if (btnTestNotification != null) {
+            btnTestNotification.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    testNotification();
+                }
+            });
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(view, new OnApplyWindowInsetsListener() {
+            @NonNull
+            @Override
+            public WindowInsetsCompat onApplyWindowInsets(@NonNull View v, @NonNull WindowInsetsCompat insets) {
+                Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                v.setPadding(v.getPaddingLeft(), systemBars.top + (int) (12 * getResources().getDisplayMetrics().density), v.getPaddingRight(), v.getPaddingBottom());
+                return insets;
             }
         });
 
@@ -92,29 +141,81 @@ public class ProfileFragment extends Fragment {
         tvContributionsCount = null;
         tvAuthProvider = null;
         btnGoogleSignIn = null;
+        btnSignOut = null;
+        btnTestNotification = null;
         llReputationHistory = null;
+    }
+
+    /** Đọc lý do ban của chính mình và ghi thêm vào dòng trạng thái. */
+    private void showBanReason() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
+        new AdminRepository().getBanReason(user.getUid(), new AdminRepository.BanReasonCallback() {
+            @Override
+            public void onResult(@Nullable String reason) {
+                if (!isAdded() || tvBannedStatus == null) return;
+                String shownReason = reason != null && !reason.trim().isEmpty()
+                        ? reason.trim() : "Vi phạm quy tắc cộng đồng";
+                tvBannedStatus.setText("Trạng thái: Đã bị khóa\nLý do: " + shownReason);
+            }
+        });
     }
 
     private void bindProfile(@NonNull UserProfile profile) {
         if (tvUserName == null) return;
+        boolean isAdmin = profile.isAdmin();
+
+        if (isAdmin) {
+            tvUserName.setText("Quản trị viên (Admin)");
+            tvReputationScore.setText(String.valueOf(profile.getReputationScore()));
+            tvBannedStatus.setText("👑 Vai trò: Quản trị viên (Admin)");
+            tvBannedStatus.setTextColor(ContextCompat.getColor(
+                    requireContext(), android.R.color.holo_purple));
+            tvAuthProvider.setText("Tài khoản: Quản trị viên");
+            btnGoogleSignIn.setVisibility(View.GONE);
+            return;
+        }
+
         tvUserName.setText(profile.getDisplayName());
         tvReputationScore.setText(String.valueOf(profile.getReputationScore()));
 
         if (profile.isBanned()) {
             tvBannedStatus.setText("Trạng thái: Đã bị khóa");
+            tvBannedStatus.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
             tvBannedStatus.setTextColor(ContextCompat.getColor(
                     requireContext(), android.R.color.holo_red_dark));
+            showBanReason();
         } else {
             tvBannedStatus.setText("Trạng thái: Hoạt động");
             tvBannedStatus.setTextColor(ContextCompat.getColor(
                     requireContext(), android.R.color.holo_green_dark));
         }
 
-        boolean isGoogle = FirestoreNames.AuthProvider.GOOGLE.equals(profile.getAuthProvider());
-        tvAuthProvider.setText(isGoogle
-                ? "Tài khoản: Google"
-                : "Tài khoản: Ẩn danh (chưa liên kết Google)");
-        btnGoogleSignIn.setVisibility(isGoogle ? View.GONE : View.VISIBLE);
+        if (FirestoreNames.AuthProvider.GOOGLE.equals(profile.getAuthProvider())) {
+            tvAuthProvider.setText("Tài khoản: Google");
+            btnGoogleSignIn.setVisibility(View.GONE);
+        } else if (FirestoreNames.AuthProvider.EMAIL.equals(profile.getAuthProvider())) {
+            tvAuthProvider.setText("Tài khoản: Email");
+            btnGoogleSignIn.setVisibility(View.GONE);
+        } else {
+            tvAuthProvider.setText("Tài khoản: Ẩn danh (chưa liên kết Google)");
+            btnGoogleSignIn.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void signOut() {
+        userRepository.clearCurrentProfile();
+        authRepository.signOut();
+        Intent intent = new Intent(requireContext(), LoginActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        requireActivity().finish();
+    }
+
+    private void testNotification() {
+        ReminderScheduler.requestNotificationPermissionIfNeeded(requireContext());
+        Toast.makeText(requireContext(), "Thông báo nhắc nhở 15 phút sẽ xuất hiện sau giây lát...", Toast.LENGTH_SHORT).show();
+        ReminderScheduler.scheduleTestReminder(requireContext(), 5);
     }
 
     private void loadReportCount() {

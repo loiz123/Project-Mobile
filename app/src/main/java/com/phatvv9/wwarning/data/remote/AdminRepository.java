@@ -7,6 +7,7 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -113,6 +114,31 @@ public class AdminRepository {
                         callback.onError(e.getMessage());
                     }
                 });
+    }
+
+    /**
+     * Đọc lý do bị khóa của một tài khoản (banned_users/{userId}.reason).
+     * Callback luôn được gọi một lần; reason = null nếu không có / không đọc được.
+     */
+    public void getBanReason(@NonNull String userId, @NonNull final BanReasonCallback callback) {
+        db.collection("banned_users").document(userId).get()
+                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot doc) {
+                        String reason = doc != null && doc.exists() ? doc.getString("reason") : null;
+                        callback.onResult(reason);
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        callback.onResult(null);
+                    }
+                });
+    }
+
+    public interface BanReasonCallback {
+        void onResult(@Nullable String reason);
     }
 
     public interface AdminCallback {

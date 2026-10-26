@@ -127,7 +127,7 @@ public class ModerationRepository {
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        Log.e(TAG, "Kiểm duyệt thất bại", e);
+                        Log.w(TAG, "Kiểm duyệt bị từ chối", e);
                         if (callback != null) callback.onError(e);
                     }
                 });

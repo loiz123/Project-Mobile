@@ -45,6 +45,10 @@ public class SyncManager {
     }
 
     public LiveData<Boolean> getIsOnlineLiveData() {
+        boolean current = NetworkUtils.isNetworkAvailable(context);
+        if (isOnlineLiveData.getValue() == null || isOnlineLiveData.getValue() != current) {
+            isOnlineLiveData.postValue(current);
+        }
         return isOnlineLiveData;
     }
 

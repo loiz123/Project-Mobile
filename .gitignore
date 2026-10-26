@@ -17,3 +17,7 @@ local.properties
 .idea/
 *.keystore
 *.jks
+*.mp4
+*zip
+
+!app/debug.keystore
