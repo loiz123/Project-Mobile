@@ -3,12 +3,14 @@ package com.phatvv9.wwarning.ui.report;
 import android.app.Dialog;
 import androidx.appcompat.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.CategoryRepository;
@@ -33,8 +35,12 @@ public class QuickReportDialog extends Dialog {
 
     private final Map<String, String> categoryMap = new HashMap<>();
 
+    public QuickReportDialog(@NonNull Context context, @NonNull ReportRepository repository, double lat, double lng) {
+        this(context, repository, lat, lng, null);
+    }
+
     public QuickReportDialog(@NonNull Context context, @NonNull ReportRepository repository, double lat, double lng,
-                             @NonNull PhotoCaptureListener photoCaptureListener) {
+                             @Nullable PhotoCaptureListener photoCaptureListener) {
         super(context);
         this.photoCaptureListener = photoCaptureListener;
         this.repository = repository;
@@ -136,13 +142,24 @@ public class QuickReportDialog extends Dialog {
                 ReminderScheduler.requestNotificationPermissionIfNeeded(context);
                 ReminderScheduler.schedule(appContext, reportId);
                 Toast.makeText(appContext, "Đã gửi cảnh báo thời tiết thành công!", Toast.LENGTH_SHORT).show();
-                new AlertDialog.Builder(context)
-                        .setTitle("Thêm ảnh cho báo cáo?")
-                        .setMessage("Bạn có muốn chụp ảnh thực tế tại vị trí này không?")
-                        .setNegativeButton("Để sau", (dialog, which) -> { })
-                        .setPositiveButton("Chụp ảnh", (dialog, which) ->
-                                photoCaptureListener.onCapturePhotoRequested(reportId))
-                        .show();
+                if (photoCaptureListener != null) {
+                    new AlertDialog.Builder(context)
+                            .setTitle("Thêm ảnh cho báo cáo?")
+                            .setMessage("Bạn có muốn chụp ảnh thực tế tại vị trí này không?")
+                            .setNegativeButton("Để sau", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    // Người dùng bỏ qua bước chụp ảnh.
+                                }
+                            })
+                            .setPositiveButton("Chụp ảnh", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    photoCaptureListener.onCapturePhotoRequested(reportId);
+                                }
+                            })
+                            .show();
+                }
             }
 
             @Override
