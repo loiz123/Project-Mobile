@@ -35,8 +35,8 @@ Dự án được xây dựng và thiết kế bởi 4 thành viên, mỗi ngư�
 
 ## ⚙️ Cài đặt để build
 
-1. Copy `local.properties.example` thành `local.properties` (file này đã nằm trong `.gitignore`, **không commit**).
-2. Điền `sdk.dir` và `MAPS_API_KEY` (key Maps SDK for Android, đã giới hạn theo package `com.phatvv9.wwarning` và SHA-1 của máy bạn).
-3. Đặt `google-services.json` vào thư mục `app/`.
+1. Mở dự án bằng Android Studio (nó tự tạo `local.properties` chứa `sdk.dir`; file này nằm trong `.gitignore`, **không commit**). Không cần điền `MAPS_API_KEY`: key Maps đã nằm trong `AndroidManifest.xml` và đã được giới hạn theo package `com.phatvv9.wwarning` + SHA-1 của `app/debug.keystore`.
+2. Keystore dùng chung `app/debug.keystore` đã được commit và `app/build.gradle` ký bản debug bằng chính nó. Mọi máy build ra cùng SHA-1 (`2E:CC:84:5F:EC:D3:99:B5:29:09:F6:F2:2D:B1:4B:5E:89:63:24:CE`), nên bản đồ và đăng nhập Google chạy ngay sau khi pull. Đây là keystore **debug** (mật khẩu mặc định `android`), không dùng để phát hành.
+3. `google-services.json` đã có sẵn trong `app/`.
 4. Dán `firestore.rules` vào Firebase Console → Firestore → Rules → Publish.
 5. Tài khoản Admin: đăng nhập app một lần, rồi vào Firestore sửa `users/{uid}.role` thành `Admin` (rules không cho app tự nâng quyền).

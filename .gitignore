@@ -19,3 +19,5 @@ local.properties
 *.jks
 *.mp4
 *zip
+
+!app/debug.keystore
