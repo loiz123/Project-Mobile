@@ -4,9 +4,11 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -58,6 +60,7 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.Timestamp;
 import com.phatvv9.wwarning.R;
+import com.phatvv9.wwarning.data.remote.ReportImageRepository;
 import com.phatvv9.wwarning.data.remote.ReportRepository;
 import com.phatvv9.wwarning.data.remote.SettingsRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
@@ -106,6 +109,43 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private EditText etSearchLocation;
     private ImageView btnClearSearch;
     private Marker searchLocationMarker;
+    private String pendingPhotoReportId;
+    private final ReportImageRepository reportImageRepository = new ReportImageRepository();
+    private final ActivityResultLauncher<Void> cameraPreviewLauncher =
+            registerForActivityResult(new ActivityResultContracts.TakePicturePreview(),
+                    new ActivityResultCallback<Bitmap>() {
+                        @Override
+                        public void onActivityResult(Bitmap bitmap) {
+                            if (bitmap == null || pendingPhotoReportId == null || !isAdded()) return;
+                            final String reportId = pendingPhotoReportId;
+                            pendingPhotoReportId = null;
+                            try {
+                                Uri imageUri = com.phatvv9.wwarning.util.CameraImageUtils
+                                        .savePreview(requireContext(), bitmap);
+                                reportImageRepository.uploadImage(requireContext(), reportId, imageUri,
+                                        new ReportImageRepository.Callback<Void>() {
+                                            @Override
+                                            public void onResult(@Nullable Void value) {
+                                                if (isAdded()) {
+                                                    Toast.makeText(requireContext(), "Đã thêm ảnh minh chứng",
+                                                            Toast.LENGTH_SHORT).show();
+                                                }
+                                            }
+
+                                            @Override
+                                            public void onError(@NonNull String message) {
+                                                if (isAdded()) {
+                                                    Toast.makeText(requireContext(), message,
+                                                            Toast.LENGTH_LONG).show();
+                                                }
+                                            }
+                                        });
+                            } catch (Exception e) {
+                                Toast.makeText(requireContext(),
+                                        "Không lưu được ảnh: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
 
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), new ActivityResultCallback<Boolean>() {
@@ -236,7 +276,14 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 }
                 if (currentLocation != null) {
                     new QuickReportDialog(requireContext(), reportRepository,
-                            currentLocation.getLatitude(), currentLocation.getLongitude()).show();
+                            currentLocation.getLatitude(), currentLocation.getLongitude(),
+                            new QuickReportDialog.PhotoCaptureListener() {
+                                @Override
+                                public void onCapturePhotoRequested(@NonNull String reportId) {
+                                    pendingPhotoReportId = reportId;
+                                    cameraPreviewLauncher.launch(null);
+                                }
+                            }).show();
                 } else {
                     Toast.makeText(requireContext(), "Đang xác định vị trí, vui lòng đợi giây lát...", Toast.LENGTH_SHORT).show();
                 }
