@@ -76,15 +76,15 @@ public class AdminReportAdapter extends RecyclerView.Adapter<AdminReportAdapter.
         String status = report.getStatus();
         if (FirestoreNames.ReportStatus.HIDDEN.equals(status)) {
             holder.tvStatus.setText("Đã ẩn");
-            holder.tvStatus.setTextColor(ContextCompat.getColor(context, android.R.color.holo_orange_dark));
-            holder.itemView.setAlpha(0.6f);
+            holder.tvStatus.setTextColor(ContextCompat.getColor(context, R.color.admin_status_hidden));
+            holder.itemView.setAlpha(0.75f);
         } else if (FirestoreNames.ReportStatus.DELETED.equals(status)) {
             holder.tvStatus.setText("Đã xóa");
-            holder.tvStatus.setTextColor(ContextCompat.getColor(context, android.R.color.holo_red_dark));
-            holder.itemView.setAlpha(0.6f);
+            holder.tvStatus.setTextColor(ContextCompat.getColor(context, R.color.admin_status_deleted));
+            holder.itemView.setAlpha(0.75f);
         } else {
             holder.tvStatus.setText("Đang hiển thị");
-            holder.tvStatus.setTextColor(ContextCompat.getColor(context, android.R.color.holo_green_dark));
+            holder.tvStatus.setTextColor(ContextCompat.getColor(context, R.color.admin_status_visible));
             holder.itemView.setAlpha(1f);
         }
 

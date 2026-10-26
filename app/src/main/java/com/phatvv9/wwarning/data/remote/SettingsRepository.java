@@ -138,7 +138,7 @@ public class SettingsRepository {
                                         cachedDownvoteThreshold = Integer.parseInt(setting.getValue());
                                     } else if ("fade_minutes".equalsIgnoreCase(doc.getId()) && setting.getValue() != null) {
                                         cachedFadeMinutes = Integer.parseInt(setting.getValue());
-                                    } else if ("search_radius_km".equalsIgnoreCase(doc.getId()) && setting.getValue() != null) {
+                                    } else if ("radius_km".equalsIgnoreCase(doc.getId()) && setting.getValue() != null) {
                                         cachedSearchRadiusKm = Double.parseDouble(setting.getValue());
                                     }
                                 } catch (NumberFormatException e) {

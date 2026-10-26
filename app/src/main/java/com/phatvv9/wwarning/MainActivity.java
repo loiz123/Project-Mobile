@@ -5,6 +5,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
@@ -12,12 +13,13 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.phatvv9.wwarning.data.remote.AdminRepository;
 import com.phatvv9.wwarning.data.remote.AuthRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.databinding.ActivityMainBinding;
 import com.phatvv9.wwarning.model.UserProfile;
-import com.phatvv9.wwarning.util.AdminSessionManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -36,15 +38,14 @@ public class MainActivity extends AppCompatActivity {
             NavigationUI.setupWithNavController(binding.bottomNavigation, navController);
         }
 
-        // Mặc định ẩn tab Admin; chỉ hiện khi users/{uid}.role == Admin hoặc đang đăng nhập quyền Admin
-        setAdminTabVisible(AdminSessionManager.isAdmin(this) || UserRepository.getInstance().isAdmin());
+        // Mặc định ẩn tab Admin cho đến khi hồ sơ Firestore xác nhận role = Admin.
+        setAdminTabVisible(UserRepository.getInstance().isAdmin());
         observeProfile();
 
         // Đăng nhập ẩn danh -> đảm bảo có users/{uid} -> ghi thiết bị -> nghe hồ sơ realtime
         new AuthRepository().signInAnonymously(new AuthRepository.AuthCallback() {
             @Override
             public void onSuccess(@NonNull FirebaseUser user) {
-                Log.d("WWarning", "uid=" + user.getUid());
                 onSignedIn(user);
             }
 
@@ -75,9 +76,7 @@ public class MainActivity extends AppCompatActivity {
         UserRepository.getInstance().getCurrentProfile().observe(this, new Observer<UserProfile>() {
             @Override
             public void onChanged(UserProfile profile) {
-                setAdminTabVisible(AdminSessionManager.isAdmin(MainActivity.this)
-                        || UserRepository.getInstance().isAdmin()
-                        || (profile != null && profile.isAdmin()));
+                setAdminTabVisible(profile != null && profile.isAdmin());
                 if (profile != null && profile.isBanned() && !bannedDialogShown) {
                     bannedDialogShown = true;
                     showBannedDialog();
@@ -89,10 +88,29 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    /** Lấy lý do ban từ banned_users/{uid} rồi mới hiện hộp thoại. */
     private void showBannedDialog() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            showBannedDialogWithReason(null);
+            return;
+        }
+        new AdminRepository().getBanReason(user.getUid(), new AdminRepository.BanReasonCallback() {
+            @Override
+            public void onResult(@Nullable String reason) {
+                if (isFinishing() || isDestroyed()) return;
+                showBannedDialogWithReason(reason);
+            }
+        });
+    }
+
+    private void showBannedDialogWithReason(@Nullable String reason) {
+        String shownReason = reason != null && !reason.trim().isEmpty()
+                ? reason.trim() : "Vi phạm quy tắc cộng đồng";
         new AlertDialog.Builder(this)
                 .setTitle("Tài khoản bị khóa")
-                .setMessage("Bạn không thể gửi báo cáo hoặc bình chọn. Bạn vẫn xem được bản đồ.")
+                .setMessage("Lý do: " + shownReason
+                        + "\n\nBạn không thể gửi báo cáo hoặc bình chọn. Bạn vẫn xem được bản đồ.")
                 .setPositiveButton("Đã hiểu", null)
                 .show();
     }
