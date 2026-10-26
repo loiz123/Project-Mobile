@@ -3,8 +3,6 @@ package com.phatvv9.wwarning.ui.map;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.net.Uri;
 import android.content.Context;
 import android.location.Address;
 import android.location.Geocoder;
@@ -60,15 +58,22 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.Timestamp;
 import com.phatvv9.wwarning.R;
-import com.phatvv9.wwarning.data.remote.ReportImageRepository;
 import com.phatvv9.wwarning.data.remote.ReportRepository;
-import com.phatvv9.wwarning.data.remote.ReportImageRepository;
 import com.phatvv9.wwarning.data.remote.SettingsRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.data.sync.SyncManager;
 import com.phatvv9.wwarning.model.Report;
 import com.phatvv9.wwarning.model.ReportCluster;
 import com.phatvv9.wwarning.ui.report.QuickReportDialog;
+import com.phatvv9.wwarning.notification.QuickReportNotification;
+import com.phatvv9.wwarning.notification.QuickReportActionReceiver;
+import com.phatvv9.wwarning.worker.QuickReportNotificationWorker;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
+import java.util.concurrent.TimeUnit;
 import com.phatvv9.wwarning.ui.report.ClusterRankingSheet;
 import com.phatvv9.wwarning.ui.report.ReportDetailSheet;
 import com.phatvv9.wwarning.util.GeoUtils;
@@ -101,31 +106,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private EditText etSearchLocation;
     private ImageView btnClearSearch;
     private Marker searchLocationMarker;
-    private String pendingPhotoReportId;
-    private final ReportImageRepository reportImageRepository = new ReportImageRepository();
-    private final ActivityResultLauncher<Void> cameraPreviewLauncher =
-            registerForActivityResult(new ActivityResultContracts.TakePicturePreview(),
-                    new ActivityResultCallback<Bitmap>() {
-                        @Override public void onActivityResult(Bitmap bitmap) {
-                            if (bitmap == null || pendingPhotoReportId == null || !isAdded()) return;
-                            final String reportId = pendingPhotoReportId;
-                            pendingPhotoReportId = null;
-                            try {
-                                Uri imageUri = com.phatvv9.wwarning.util.CameraImageUtils.savePreview(requireContext(), bitmap);
-                                reportImageRepository.uploadImage(requireContext(), reportId, imageUri,
-                                        new ReportImageRepository.Callback<Void>() {
-                                            @Override public void onResult(@Nullable Void value) {
-                                                if (isAdded()) Toast.makeText(requireContext(), "Đã thêm ảnh cho báo cáo", Toast.LENGTH_SHORT).show();
-                                            }
-                                            @Override public void onError(@NonNull String message) {
-                                                if (isAdded()) Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
-                                            }
-                                        });
-                            } catch (Exception e) {
-                                Toast.makeText(requireContext(), "Không lưu được ảnh: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                            }
-                        }
-                    });
 
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), new ActivityResultCallback<Boolean>() {
@@ -229,6 +209,18 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         reportRepository = ReportRepository.getInstance(requireContext());
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
+        // Làm mới ngay rồi định kỳ; Worker quyết định có hiển thị thông báo hay không.
+        QuickReportNotification.dismiss(requireContext());
+        OneTimeWorkRequest initialNotificationRefresh = new OneTimeWorkRequest.Builder(
+                QuickReportNotificationWorker.class).build();
+        WorkManager.getInstance(requireContext()).enqueueUniqueWork(
+                "wwarning_quick_report_initial", ExistingWorkPolicy.REPLACE,
+                initialNotificationRefresh);
+        PeriodicWorkRequest notificationRefresh = new PeriodicWorkRequest.Builder(
+                QuickReportNotificationWorker.class, 15, TimeUnit.MINUTES).build();
+        WorkManager.getInstance(requireContext()).enqueueUniquePeriodicWork(
+                "wwarning_quick_report_refresh", ExistingPeriodicWorkPolicy.KEEP, notificationRefresh);
+
         SupportMapFragment mapFragment = (SupportMapFragment) getChildFragmentManager()
                 .findFragmentById(R.id.map);
         if (mapFragment != null) {
@@ -244,13 +236,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 }
                 if (currentLocation != null) {
                     new QuickReportDialog(requireContext(), reportRepository,
-                            currentLocation.getLatitude(), currentLocation.getLongitude(),
-                            new QuickReportDialog.PhotoCaptureListener() {
-                                @Override public void onCapturePhotoRequested(@NonNull String reportId) {
-                                    pendingPhotoReportId = reportId;
-                                    cameraPreviewLauncher.launch(null);
-                                }
-                            }).show();
+                            currentLocation.getLatitude(), currentLocation.getLongitude()).show();
                 } else {
                     Toast.makeText(requireContext(), "Đang xác định vị trí, vui lòng đợi giây lát...", Toast.LENGTH_SHORT).show();
                 }
@@ -733,6 +719,16 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+    private void saveQuickReportLocation(@NonNull Location location) {
+        requireContext().getSharedPreferences("wwarning_quick_report_location", Context.MODE_PRIVATE)
+                .edit()
+                .putLong(QuickReportActionReceiver.KEY_LAT, Double.doubleToRawLongBits(location.getLatitude()))
+                .putLong(QuickReportActionReceiver.KEY_LNG, Double.doubleToRawLongBits(location.getLongitude()))
+                .putLong(QuickReportActionReceiver.KEY_LOCATION_TIME, location.getTime())
+                .putBoolean(QuickReportActionReceiver.KEY_HAS_LOCATION, true)
+                .apply();
+    }
+
     private void checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             enableMyLocation();
@@ -752,6 +748,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 public void onSuccess(Location location) {
                     if (location != null) {
                         currentLocation = location;
+                        saveQuickReportLocation(location);
                         // Cập nhật toạ độ GPS cho ReportRepository kích hoạt truy vấn bán kính từ app_settings
                         reportRepository.setLocation(location.getLatitude(), location.getLongitude());
 
@@ -778,6 +775,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                     Location location = locationResult.getLastLocation();
                     if (location != null) {
                         currentLocation = location;
+                        saveQuickReportLocation(location);
                         // Cập nhật toạ độ GPS cho ReportRepository
                         reportRepository.setLocation(location.getLatitude(), location.getLongitude());
 
