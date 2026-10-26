@@ -148,6 +148,32 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
+    // ---------- report_images: ảnh báo cáo (Base64 đã mã hóa AES-GCM) ----------
+    // Tách khỏi "reports" để bản đồ không phải tải ảnh. Mỗi báo cáo tối đa 1 ảnh, do chủ báo cáo tạo.
+    match /report_images/{reportId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && !isBanned()
+        && request.resource.data.keys().hasOnly(['userId', 'imageData', 'createdAt'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.imageData is string
+        && request.resource.data.imageData.size() < 150000
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/reports/$(reportId))
+        && get(/databases/$(database)/documents/reports/$(reportId)).data.userId == request.auth.uid;
+
+      allow update: if false;
+      allow delete: if isSignedIn()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // ---------- secrets: khóa mã hóa ảnh (chỉ đọc; tạo/sửa bằng Firebase Console) ----------
+    match /secrets/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     // ---------- banned_users (chỉ admin) ----------
     match /banned_users/{userId} {
       allow read: if isSignedIn();

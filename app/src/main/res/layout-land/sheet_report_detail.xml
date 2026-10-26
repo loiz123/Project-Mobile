@@ -202,5 +202,7 @@
                     app:strokeColor="#B71C1C" />
             </LinearLayout>
         </LinearLayout>
+
+        <include layout="@layout/view_report_image" />
     </LinearLayout>
 </ScrollView>
