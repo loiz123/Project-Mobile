@@ -1,6 +1,9 @@
 package com.phatvv9.wwarning.ui.report;
 
 import android.content.DialogInterface;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.net.Uri;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -14,11 +17,16 @@ import android.text.InputType;
 import android.text.TextWatcher;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
@@ -33,6 +41,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.AdminRepository;
+import com.phatvv9.wwarning.data.remote.ReportImageRepository;
 import com.phatvv9.wwarning.data.remote.ReportRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.data.remote.VoteRepository;
@@ -85,6 +94,13 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
     private final VoteRepository voteRepository = new VoteRepository();
     private final AdminRepository adminRepository = new AdminRepository();
 
+    // Ảnh của báo cáo (collection report_images, mã hóa AES-GCM)
+    private final ReportImageRepository imageRepository = new ReportImageRepository();
+    private ImageView ivReportImage;
+    private Button btnAddImage;
+    private boolean hasImage;
+    private ActivityResultLauncher<Void> cameraLauncher;
+
     public static ReportDetailSheet newInstance(@NonNull ReportCluster cluster) {
         currentClusterInstance = cluster;
         Report primary = cluster.getPrimaryReport();
@@ -121,6 +137,19 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        cameraLauncher = registerForActivityResult(new ActivityResultContracts.TakePicturePreview(),
+                new ActivityResultCallback<Bitmap>() {
+                    @Override
+                    public void onActivityResult(Bitmap bitmap) {
+                        if (bitmap == null || !isAdded()) return;
+                        try {
+                            Uri uri = com.phatvv9.wwarning.util.CameraImageUtils.savePreview(requireContext(), bitmap);
+                            uploadPickedImage(uri);
+                        } catch (Exception e) {
+                            Toast.makeText(requireContext(), "Không lưu được ảnh chụp: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
         Bundle args = getArguments();
         if (args != null) {
             reportId = args.getString(ARG_REPORT_ID);
@@ -160,6 +189,14 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         btnDownvote = view.findViewById(R.id.btnDownvote);
         btnDeleteMyReport = view.findViewById(R.id.btnDeleteMyReport);
         btnBanAuthor = view.findViewById(R.id.btnBanAuthor);
+        ivReportImage = view.findViewById(R.id.ivReportImage);
+        btnAddImage = view.findViewById(R.id.btnAddImage);
+        btnAddImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cameraLauncher.launch(null);
+            }
+        });
 
         btnUpvote.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -213,6 +250,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         showCounts();
         loadAuthor();
         updateDeleteButton();
+        loadReportImage();
     }
 
     private void populateClusterCategories() {
@@ -373,6 +411,62 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
 
         bindCurrentReportViews();
         populateClusterCategories();
+    }
+
+    /** Tải ảnh của báo cáo đang xem (gọi lại mỗi khi đổi báo cáo trong cụm). */
+    private void loadReportImage() {
+        if (ivReportImage == null || reportId == null) return;
+        final String requested = reportId;
+        hasImage = false;
+        ivReportImage.setVisibility(View.GONE);
+        updateAddImageButton();
+        imageRepository.loadImage(requested, new ReportImageRepository.Callback<Bitmap>() {
+            @Override
+            public void onResult(@Nullable Bitmap bitmap) {
+                if (!isAdded() || !requested.equals(reportId)) return;   // đã chuyển sang báo cáo khác
+                hasImage = bitmap != null;
+                if (bitmap != null) {
+                    ivReportImage.setImageBitmap(bitmap);
+                    ivReportImage.setVisibility(View.VISIBLE);
+                }
+                updateAddImageButton();
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                if (isAdded()) updateAddImageButton();
+            }
+        });
+    }
+
+    /** Nút "Thêm ảnh" chỉ hiện cho chủ báo cáo khi báo cáo chưa có ảnh. */
+    private void updateAddImageButton() {
+        if (btnAddImage == null) return;
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        boolean isMine = user != null && authorId != null && authorId.equals(user.getUid());
+        btnAddImage.setVisibility(isMine && !hasImage ? View.VISIBLE : View.GONE);
+    }
+
+    private void uploadPickedImage(@NonNull Uri uri) {
+        if (reportId == null) return;
+        btnAddImage.setEnabled(false);
+        imageRepository.uploadImage(requireContext(), reportId, uri,
+                new ReportImageRepository.Callback<Void>() {
+                    @Override
+                    public void onResult(@Nullable Void unused) {
+                        if (!isAdded()) return;
+                        btnAddImage.setEnabled(true);
+                        Toast.makeText(requireContext(), "Đã thêm ảnh", Toast.LENGTH_SHORT).show();
+                        loadReportImage();
+                    }
+
+                    @Override
+                    public void onError(@NonNull String message) {
+                        if (!isAdded()) return;
+                        btnAddImage.setEnabled(true);
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 
     private void updateDeleteButton() {
