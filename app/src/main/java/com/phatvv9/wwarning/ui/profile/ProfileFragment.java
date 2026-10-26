@@ -22,10 +22,12 @@ import androidx.lifecycle.Observer;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.phatvv9.wwarning.BuildConfig;
 import com.phatvv9.wwarning.R;
+import com.phatvv9.wwarning.data.remote.AdminRepository;
 import com.phatvv9.wwarning.data.remote.AuthRepository;
 import com.phatvv9.wwarning.data.remote.ReputationRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
@@ -144,6 +146,21 @@ public class ProfileFragment extends Fragment {
         llReputationHistory = null;
     }
 
+    /** Đọc lý do ban của chính mình và ghi thêm vào dòng trạng thái. */
+    private void showBanReason() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
+        new AdminRepository().getBanReason(user.getUid(), new AdminRepository.BanReasonCallback() {
+            @Override
+            public void onResult(@Nullable String reason) {
+                if (!isAdded() || tvBannedStatus == null) return;
+                String shownReason = reason != null && !reason.trim().isEmpty()
+                        ? reason.trim() : "Vi phạm quy tắc cộng đồng";
+                tvBannedStatus.setText("Trạng thái: Đã bị khóa\nLý do: " + shownReason);
+            }
+        });
+    }
+
     private void bindProfile(@NonNull UserProfile profile) {
         if (tvUserName == null) return;
         boolean isAdmin = profile.isAdmin();
@@ -164,8 +181,10 @@ public class ProfileFragment extends Fragment {
 
         if (profile.isBanned()) {
             tvBannedStatus.setText("Trạng thái: Đã bị khóa");
+            tvBannedStatus.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
             tvBannedStatus.setTextColor(ContextCompat.getColor(
                     requireContext(), android.R.color.holo_red_dark));
+            showBanReason();
         } else {
             tvBannedStatus.setText("Trạng thái: Hoạt động");
             tvBannedStatus.setTextColor(ContextCompat.getColor(
