@@ -1,6 +1,7 @@
 package com.phatvv9.wwarning.ui.report;
 
 import android.app.Dialog;
+import androidx.appcompat.app.AlertDialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
@@ -20,6 +21,10 @@ import java.util.List;
 import java.util.Map;
 
 public class QuickReportDialog extends Dialog {
+    public interface PhotoCaptureListener {
+        void onCapturePhotoRequested(@NonNull String reportId);
+    }
+    private final PhotoCaptureListener photoCaptureListener;
 
     private final ReportRepository repository;
     private final CategoryRepository categoryRepository;
@@ -28,8 +33,10 @@ public class QuickReportDialog extends Dialog {
 
     private final Map<String, String> categoryMap = new HashMap<>();
 
-    public QuickReportDialog(@NonNull Context context, @NonNull ReportRepository repository, double lat, double lng) {
+    public QuickReportDialog(@NonNull Context context, @NonNull ReportRepository repository, double lat, double lng,
+                             @NonNull PhotoCaptureListener photoCaptureListener) {
         super(context);
+        this.photoCaptureListener = photoCaptureListener;
         this.repository = repository;
         this.categoryRepository = new CategoryRepository(context);
         this.lat = lat;
@@ -129,6 +136,13 @@ public class QuickReportDialog extends Dialog {
                 ReminderScheduler.requestNotificationPermissionIfNeeded(context);
                 ReminderScheduler.schedule(appContext, reportId);
                 Toast.makeText(appContext, "Đã gửi cảnh báo thời tiết thành công!", Toast.LENGTH_SHORT).show();
+                new AlertDialog.Builder(context)
+                        .setTitle("Thêm ảnh cho báo cáo?")
+                        .setMessage("Bạn có muốn chụp ảnh thực tế tại vị trí này không?")
+                        .setNegativeButton("Để sau", (dialog, which) -> { })
+                        .setPositiveButton("Chụp ảnh", (dialog, which) ->
+                                photoCaptureListener.onCapturePhotoRequested(reportId))
+                        .show();
             }
 
             @Override
