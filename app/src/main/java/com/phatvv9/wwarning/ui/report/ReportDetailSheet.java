@@ -9,7 +9,11 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextWatcher;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,6 +32,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.phatvv9.wwarning.R;
+import com.phatvv9.wwarning.data.remote.AdminRepository;
 import com.phatvv9.wwarning.data.remote.ReportRepository;
 import com.phatvv9.wwarning.data.remote.UserRepository;
 import com.phatvv9.wwarning.data.remote.VoteRepository;
@@ -73,8 +78,12 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
     private Button btnUpvote;
     private Button btnDownvote;
     private Button btnDeleteMyReport;
+    private Button btnBanAuthor;
+    /** Hồ sơ người đăng của báo cáo đang xem (null nếu chưa tải xong / ẩn danh). */
+    private UserProfile authorProfile;
 
     private final VoteRepository voteRepository = new VoteRepository();
+    private final AdminRepository adminRepository = new AdminRepository();
 
     public static ReportDetailSheet newInstance(@NonNull ReportCluster cluster) {
         currentClusterInstance = cluster;
@@ -150,6 +159,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         btnUpvote = view.findViewById(R.id.btnUpvote);
         btnDownvote = view.findViewById(R.id.btnDownvote);
         btnDeleteMyReport = view.findViewById(R.id.btnDeleteMyReport);
+        btnBanAuthor = view.findViewById(R.id.btnBanAuthor);
 
         btnUpvote.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -412,22 +422,150 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
     // Hiện tên và điểm uy tín của người đăng báo cáo (users/{authorId})
     private void loadAuthor() {
         if (tvAuthor == null) return;
+        authorProfile = null;
+        updateBanButton();
+
         if (authorId == null || authorId.isEmpty()) {
             tvAuthor.setText("Người đăng: Khách ẩn danh");
             return;
         }
+        final String requestedAuthorId = authorId;
         UserRepository.getInstance().fetchProfile(authorId, new UserRepository.UserCallback() {
             @Override
             public void onSuccess(@NonNull UserProfile profile) {
                 if (!isAdded() || tvAuthor == null) return;
+                // Người dùng có thể đã chạm sang báo cáo khác trong lúc đang tải
+                if (!requestedAuthorId.equals(authorId)) return;
+                authorProfile = profile;
                 tvAuthor.setText("Người đăng: " + profile.getDisplayName()
-                        + " · Uy tín: " + profile.getReputationScore());
+                        + " · Uy tín: " + profile.getReputationScore()
+                        + (profile.isBanned() ? " · 🚫 Đã bị khóa" : ""));
+                updateBanButton();
             }
 
             @Override
             public void onError(@NonNull Exception e) {
                 if (!isAdded() || tvAuthor == null) return;
                 tvAuthor.setText("Người đăng: Khách ẩn danh");
+            }
+        });
+    }
+
+    /**
+     * Nút "Cấm người đăng": chỉ admin thấy, và chỉ khi người đăng là người khác,
+     * không phải admin, chưa bị khóa.
+     */
+    private void updateBanButton() {
+        if (btnBanAuthor == null) return;
+        UserProfile me = UserRepository.getInstance().getCurrentProfile().getValue();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        String myUid = currentUser != null ? currentUser.getUid() : null;
+
+        boolean canBan = me != null && me.isAdmin()
+                && authorProfile != null
+                && authorId != null && !authorId.equals(myUid)
+                && !authorProfile.isAdmin()
+                && !authorProfile.isBanned();
+        if (!canBan) {
+            btnBanAuthor.setVisibility(View.GONE);
+            return;
+        }
+        btnBanAuthor.setVisibility(View.VISIBLE);
+        btnBanAuthor.setEnabled(true);
+        btnBanAuthor.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showBanReasonDialog();
+            }
+        });
+    }
+
+    /** Hộp thoại nhập lý do; nút "Cấm" chỉ bấm được khi đã nhập lý do. */
+    private void showBanReasonDialog() {
+        if (!isAdded() || authorId == null) return;
+        final String targetUid = authorId;
+        final String targetName = authorProfile != null && authorProfile.getDisplayName() != null
+                ? authorProfile.getDisplayName() : targetUid;
+
+        float density = getResources().getDisplayMetrics().density;
+        int pad = (int) (20 * density);
+
+        final EditText etReason = new EditText(requireContext());
+        etReason.setHint("Lý do cấm (bắt buộc)");
+        etReason.setInputType(InputType.TYPE_CLASS_TEXT
+                | InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        etReason.setMinLines(3);
+        etReason.setGravity(Gravity.TOP | Gravity.START);
+
+        LinearLayout container = new LinearLayout(requireContext());
+        container.setPadding(pad, (int) (8 * density), pad, 0);
+        container.addView(etReason, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        final AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setTitle("Cấm tài khoản?")
+                .setMessage("Người đăng: " + targetName
+                        + "\nTài khoản bị cấm sẽ không thể đăng báo cáo hay bình chọn.")
+                .setView(container)
+                .setPositiveButton("Cấm", null)   // gán listener bên dưới để không tự đóng khi thiếu lý do
+                .setNegativeButton("Hủy", null)
+                .create();
+        dialog.show();
+
+        final Button btnConfirm = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        btnConfirm.setEnabled(false);
+        etReason.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                btnConfirm.setEnabled(s.toString().trim().length() > 0);
+            }
+        });
+        btnConfirm.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String reason = etReason.getText().toString().trim();
+                if (reason.isEmpty()) {
+                    etReason.setError("Vui lòng nhập lý do");
+                    return;
+                }
+                dialog.dismiss();
+                banAuthor(targetUid, reason);
+            }
+        });
+    }
+
+    private void banAuthor(@NonNull final String targetUid, @NonNull String reason) {
+        FirebaseUser admin = FirebaseAuth.getInstance().getCurrentUser();
+        if (admin == null) return;
+        if (btnBanAuthor != null) btnBanAuthor.setEnabled(false);
+
+        adminRepository.banUser(targetUid, admin.getUid(), reason, new AdminRepository.AdminCallback() {
+            @Override
+            public void onSuccess() {
+                if (!isAdded()) return;
+                Toast.makeText(requireContext(), "Đã cấm tài khoản", Toast.LENGTH_SHORT).show();
+                if (targetUid.equals(authorId)) {
+                    if (authorProfile != null) {
+                        authorProfile.setStatus(com.phatvv9.wwarning.util.FirestoreNames.UserStatus.BANNED);
+                    }
+                    loadAuthor();   // tải lại để hiện trạng thái "Đã bị khóa" và ẩn nút
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                if (!isAdded()) return;
+                if (btnBanAuthor != null) btnBanAuthor.setEnabled(true);
+                Toast.makeText(requireContext(), "Không cấm được: " + error, Toast.LENGTH_LONG).show();
             }
         });
     }
