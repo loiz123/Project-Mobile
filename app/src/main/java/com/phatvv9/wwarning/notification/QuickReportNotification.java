@@ -45,13 +45,8 @@ public final class QuickReportNotification {
                 .setCategory(NotificationCompat.CATEGORY_STATUS)
                 .setOngoing(false)
                 .setOnlyAlertOnce(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .addAction(0, "Mưa", reportPending(app, "cat_mua", "Mưa", 1))
-                .addAction(0, "Ngập", reportPending(app, "cat_ngap", "Ngập lụt", 2))
-                .addAction(0, "Bão", reportPending(app, "cat_bao", "Bão", 3))
-                .addAction(0, "Nắng", reportPending(app, "cat_nang", "Nắng", 4))
-                .addAction(0, "Sương mù", reportPending(app, "cat_suong", "Sương mù", 5))
-                .addAction(0, "Cây đổ", reportPending(app, "cat_cay", "Cây đổ", 6));
+                .setPriority(NotificationCompat.PRIORITY_LOW);
+        addQuickReportActions(builder, app);
 
         if (Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             NotificationManager manager = (NotificationManager) app.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -63,6 +58,17 @@ public final class QuickReportNotification {
         NotificationManager manager = (NotificationManager)
                 context.getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager != null) manager.cancel(NOTIFICATION_ID);
+    }
+
+    /** Gắn các thao tác Quick Report vào bất kỳ thông báo nào của WWarning. */
+    public static void addQuickReportActions(NotificationCompat.Builder builder, Context context) {
+        Context app = context.getApplicationContext();
+        builder.addAction(0, "Mưa", reportPending(app, "cat_mua", "Mưa", 1))
+                .addAction(0, "Nắng", reportPending(app, "cat_nang", "Nắng", 4))
+                .addAction(0, "Ngập", reportPending(app, "cat_ngap", "Ngập lụt", 2))
+                .addAction(0, "Bão", reportPending(app, "cat_bao", "Bão", 3))
+                .addAction(0, "Sương mù", reportPending(app, "cat_suong", "Sương mù", 5))
+                .addAction(0, "Âm u", reportPending(app, "cat_am_u", "Âm u", 6));
     }
 
     private static PendingIntent reportPending(Context context, String categoryId, String name, int requestCode) {

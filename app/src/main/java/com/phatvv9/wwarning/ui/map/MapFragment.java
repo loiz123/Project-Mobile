@@ -672,9 +672,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             case "cat_ngap":
             case "Flood":
                 return "🌊";
-            case "cat_cay":
-            case "FallenTree":
-                return "🪵";
+            case "cat_am_u":
+            case "Overcast":
+                return "☁️";
             default:
                 return "🌦️";
         }
@@ -690,10 +690,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         switch (categoryId) {
             case "cat_ngap":
             case "cat_bao":
-            case "cat_cay":
             case "Flood":
             case "Storm":
-            case "FallenTree":
                 return true;
             default:
                 return false;
@@ -719,9 +717,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             case "cat_ngap":
             case "Flood":
                 return "Ngập lụt";
-            case "cat_cay":
-            case "FallenTree":
-                return "Cây đổ";
+            case "cat_am_u":
+            case "Overcast":
+                return "Âm u";
             default:
                 return categoryId;
         }
@@ -744,9 +742,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             case "cat_ngap":
             case "Flood":
                 return BitmapDescriptorFactory.HUE_RED;
-            case "cat_cay":
-            case "FallenTree":
-                return BitmapDescriptorFactory.HUE_VIOLET;
+            case "cat_am_u":
+            case "Overcast":
+                return BitmapDescriptorFactory.HUE_BLUE;
             default:
                 return BitmapDescriptorFactory.HUE_RED;
         }
