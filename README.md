@@ -18,7 +18,7 @@ WWarning là ứng dụng di động chia sẻ thông tin thời tiết dựa tr
 6. Tự động dọn dẹp dữ liệu (Auto-Expire): 
    Các báo cáo thời tiết sẽ tự động bị ẩn hoặc làm mờ sau một khoảng thời gian nhất định (ví dụ: 60 phút) để đảm bảo bản đồ luôn phản ánh đúng tình trạng thực tế nhất.
 7. Bộ lọc rủi ro (Risk Filter): 
-   Thanh công cụ cho phép người dùng lọc bản đồ để chỉ hiển thị các yếu tố cản trở giao thông cực đoan như "Ngập lụt" hay "Cây đổ".
+   Thanh công cụ cho phép người dùng lọc bản đồ để chỉ hiển thị các cảnh báo thời tiết rủi ro cao như "Ngập lụt" và "Bão".
 8. Hệ thống Điểm uy tín (Reputation System): 
    Thu thập điểm uy tín dựa trên độ chính xác của các báo cáo được cộng đồng xác nhận, giúp lọc ra những người dùng đóng góp chất lượng.
 
