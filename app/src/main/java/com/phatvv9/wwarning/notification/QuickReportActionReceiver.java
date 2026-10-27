@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.phatvv9.wwarning.data.remote.ReportRepository;
+import com.phatvv9.wwarning.worker.ReminderScheduler;
 
 /** Sends a report directly from the notification; deliberately does not request/capture an image. */
 public class QuickReportActionReceiver extends BroadcastReceiver {
@@ -58,6 +59,8 @@ public class QuickReportActionReceiver extends BroadcastReceiver {
                 @Override public void onSuccess(@NonNull String reportId) {
                     prefs.edit().putLong(KEY_LAST_SUCCESS, System.currentTimeMillis()).apply();
                     SEND_GUARD.finish();
+                    // Gửi từ notification cũng phải có chu kỳ nhắc 15 phút như Quick Report trên map.
+                    ReminderScheduler.schedule(context.getApplicationContext(), reportId);
                     QuickReportNotification.dismiss(context);
                     Toast.makeText(context, "Đã gửi báo cáo " + finalName + " thành công.",
                             Toast.LENGTH_SHORT).show();

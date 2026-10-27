@@ -41,9 +41,9 @@ public final class MarkerIconFactory {
             case "cat_suong":
             case "Fog":
                 return 0xFF00ACC1;
-            case "cat_cay":
-            case "FallenTree":
-                return 0xFF7E57C2;
+            case "cat_am_u":
+            case "Overcast":
+                return 0xFF78909C;
             default:
                 return 0xFFD32F2F;
         }

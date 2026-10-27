@@ -47,7 +47,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="🗑️ Xóa tất cả báo cáo của tôi trong khu vực này"
+                android:text="Xóa tất cả báo cáo của tôi trong khu vực này"
                 android:textColor="#D32F2F"
                 android:visibility="gone" />
 
@@ -162,13 +162,22 @@
                 app:backgroundTint="#C62828" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/tvVoteHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Bình chọn giúp xác thực cảnh báo trong khu vực."
+            android:textColor="@android:color/darker_gray"
+            android:textSize="13sp" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnDeleteMyReport"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="🗑️ Xóa báo cáo này"
+            android:text="Xóa báo cáo này"
             android:textColor="#D32F2F"
             android:visibility="gone"
             app:strokeColor="#D32F2F" />
@@ -179,7 +188,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="🚫 Cấm người đăng"
+            android:text="Cấm người đăng"
             android:textColor="#B71C1C"
             android:visibility="gone"
             tools:visibility="visible"

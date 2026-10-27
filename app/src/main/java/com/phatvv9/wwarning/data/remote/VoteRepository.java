@@ -141,6 +141,26 @@ public class VoteRepository {
         });
     }
 
+    /** Đọc bình chọn hiện có để giao diện thể hiện rõ trạng thái của người dùng. */
+    public void getVoteValue(@NonNull String reportId, @NonNull String userId,
+                             @NonNull final VoteValueCallback callback) {
+        String voteDocId = reportId + "_" + userId;
+        db.collection(FirestoreNames.VOTES).document(voteDocId).get()
+                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot snapshot) {
+                        Long value = snapshot.getLong("voteValue");
+                        callback.onLoaded(value != null ? value.intValue() : 0);
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
     // app_settings/downvote_threshold: value dạng chuỗi; thiếu hoặc sai thì dùng mặc định
     private static int readThreshold(@NonNull DocumentSnapshot snap) {
         Object raw = snap.exists() ? snap.get("value") : null;
@@ -190,6 +210,11 @@ public class VoteRepository {
 
     public interface VoteCallback {
         void onSuccess();
+        void onError(String error);
+    }
+
+    public interface VoteValueCallback {
+        void onLoaded(int voteValue);
         void onError(String error);
     }
 }

@@ -91,10 +91,10 @@ public class QuickReportDialog extends Dialog {
                 submitReportByName("Ngập lụt", "cat_ngap");
             }
         });
-        findViewById(R.id.btnTree).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.btnOvercast).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                submitReportByName("Cây đổ", "cat_cay");
+                submitReportByName("Âm u", "cat_am_u");
             }
         });
         findViewById(R.id.btnCancel).setOnClickListener(new View.OnClickListener() {
