@@ -26,10 +26,9 @@ public class MapLogicTest {
     // ---- Risk filter ----
 
     @Test
-    public void riskCategories_areFloodStormFallenTree() {
+    public void riskCategories_areFloodAndStorm() {
         assertTrue(MapFragment.isRiskCategory("cat_ngap"));
         assertTrue(MapFragment.isRiskCategory("cat_bao"));
-        assertTrue(MapFragment.isRiskCategory("cat_cay"));
         assertTrue(MapFragment.isRiskCategory("Flood"));
     }
 
@@ -38,6 +37,7 @@ public class MapLogicTest {
         assertFalse(MapFragment.isRiskCategory("cat_nang"));
         assertFalse(MapFragment.isRiskCategory("cat_mua"));
         assertFalse(MapFragment.isRiskCategory("cat_suong"));
+        assertFalse(MapFragment.isRiskCategory("cat_am_u"));
         assertFalse(MapFragment.isRiskCategory(null));
     }
 
@@ -45,6 +45,7 @@ public class MapLogicTest {
     public void displayName_mapsKnownAndFallsBack() {
         assertEquals("Ngập lụt", MapFragment.getCategoryDisplayName("cat_ngap"));
         assertEquals("Mưa", MapFragment.getCategoryDisplayName("Rain"));
+        assertEquals("Âm u", MapFragment.getCategoryDisplayName("cat_am_u"));
         assertEquals("Cảnh báo thời tiết", MapFragment.getCategoryDisplayName(null));
         assertEquals("abc", MapFragment.getCategoryDisplayName("abc"));
     }

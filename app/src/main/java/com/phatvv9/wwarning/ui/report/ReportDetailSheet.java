@@ -1,7 +1,9 @@
 package com.phatvv9.wwarning.ui.report;
 
-import android.content.DialogInterface;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.graphics.Typeface;
@@ -17,6 +19,7 @@ import android.text.InputType;
 import android.text.TextWatcher;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -33,6 +36,8 @@ import androidx.appcompat.app.AlertDialog;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -164,6 +169,47 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
             upCount = args.getInt(ARG_UP, 0);
             downCount = args.getInt(ARG_DOWN, 0);
         }
+    }
+
+    /**
+     * Landscape has much less vertical space. Expand the sheet and give its
+     * ScrollView a fixed viewport so the vote controls remain reachable.
+     */
+    @NonNull
+    @Override
+    public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+        final BottomSheetDialog dialog = (BottomSheetDialog) super.onCreateDialog(savedInstanceState);
+        dialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialogInterface) {
+                if (getResources().getConfiguration().orientation
+                        != Configuration.ORIENTATION_LANDSCAPE) {
+                    return;
+                }
+
+                final FrameLayout bottomSheet = dialog.findViewById(
+                        com.google.android.material.R.id.design_bottom_sheet);
+                if (bottomSheet == null) return;
+
+                bottomSheet.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        ViewGroup.LayoutParams params = bottomSheet.getLayoutParams();
+                        if (params != null) {
+                            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+                            params.height = (int) (screenHeight * 0.90f);
+                            bottomSheet.setLayoutParams(params);
+                        }
+
+                        BottomSheetBehavior<FrameLayout> behavior =
+                                BottomSheetBehavior.from(bottomSheet);
+                        behavior.setSkipCollapsed(true);
+                        behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                    }
+                });
+            }
+        });
+        return dialog;
     }
 
     @Nullable

@@ -46,6 +46,19 @@ public class ReportLocalCache {
         });
     }
 
+    /**
+     * Đồng bộ đầy đủ snapshot online. Danh sách rỗng cũng phải xóa cache cũ,
+     * nếu không báo cáo đã hết hạn có thể xuất hiện lại khi Firestore trả về rỗng.
+     */
+    public void replaceReportsFromRemote(final List<Report> reports) {
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                reportDao.replaceAll(ReportMapper.toEntityList(reports));
+            }
+        });
+    }
+
     public LiveData<List<Report>> getCachedReports() {
         final MediatorLiveData<List<Report>> result = new MediatorLiveData<>();
         final LiveData<List<ReportEntity>> liveEntities = reportDao.getAllReports();
