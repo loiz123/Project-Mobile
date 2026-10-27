@@ -24,6 +24,7 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.phatvv9.wwarning.util.FirestoreNames;
+import com.phatvv9.wwarning.notification.QuickReportNotification;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -144,6 +145,9 @@ public class WeatherReminderWorker extends Worker {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(contentIntent)
                 .setAutoCancel(true);
+
+        // Reminder thật và thông báo demo cùng có các nút gửi Quick Report.
+        QuickReportNotification.addQuickReportActions(builder, context);
 
         manager.notify(NOTIFICATION_ID, builder.build());
     }

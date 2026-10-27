@@ -84,6 +84,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
     private TextView tvAuthor;
     private TextView tvUpvoteCount;
     private TextView tvDownvoteCount;
+    private TextView tvVoteHint;
     private Button btnUpvote;
     private Button btnDownvote;
     private Button btnDeleteMyReport;
@@ -100,6 +101,9 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
     private Button btnAddImage;
     private boolean hasImage;
     private ActivityResultLauncher<Void> cameraLauncher;
+    private int currentUserVote;
+    private boolean voteStateLoaded;
+    private boolean voteInProgress;
 
     public static ReportDetailSheet newInstance(@NonNull ReportCluster cluster) {
         currentClusterInstance = cluster;
@@ -185,6 +189,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         tvAuthor = view.findViewById(R.id.tvReportAuthor);
         tvUpvoteCount = view.findViewById(R.id.tvUpvoteCount);
         tvDownvoteCount = view.findViewById(R.id.tvDownvoteCount);
+        tvVoteHint = view.findViewById(R.id.tvVoteHint);
         btnUpvote = view.findViewById(R.id.btnUpvote);
         btnDownvote = view.findViewById(R.id.btnDownvote);
         btnDeleteMyReport = view.findViewById(R.id.btnDeleteMyReport);
@@ -248,6 +253,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         }
 
         showCounts();
+        loadCurrentUserVote();
         loadAuthor();
         updateDeleteButton();
         loadReportImage();
@@ -276,8 +282,8 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
             if (!myReportsInCluster.isEmpty()) {
                 btnDeleteAllMyInCluster.setVisibility(View.VISIBLE);
                 btnDeleteAllMyInCluster.setText(isAdmin
-                        ? "🗑️ Xóa tất cả báo cáo trong khu vực này (" + myReportsInCluster.size() + ")"
-                        : "🗑️ Xóa tất cả báo cáo của tôi trong khu vực này (" + myReportsInCluster.size() + ")");
+                        ? "Xóa tất cả báo cáo trong khu vực này (" + myReportsInCluster.size() + ")"
+                        : "Xóa tất cả báo cáo của tôi trong khu vực này (" + myReportsInCluster.size() + ")");
                 btnDeleteAllMyInCluster.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -339,7 +345,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
             if (myRepInStat != null) {
                 final Report toDel = myRepInStat;
                 TextView btnQuickDel = new TextView(requireContext());
-                btnQuickDel.setText("🗑️ Xóa");
+                btnQuickDel.setText("Xóa");
                 btnQuickDel.setTextSize(13);
                 btnQuickDel.setTextColor(0xFFD32F2F);
                 btnQuickDel.setTypeface(null, Typeface.BOLD);
@@ -480,7 +486,7 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
 
         if (isMyReport || isAdmin) {
             btnDeleteMyReport.setVisibility(View.VISIBLE);
-            btnDeleteMyReport.setText(isMyReport ? "🗑️ Xóa báo cáo của tôi" : "🗑️ Xóa báo cáo (Quyền Admin)");
+            btnDeleteMyReport.setText(isMyReport ? "Xóa báo cáo của tôi" : "Xóa báo cáo (Quyền Admin)");
             btnDeleteMyReport.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -669,9 +675,78 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
         if (tvDownvoteCount != null) tvDownvoteCount.setText("Báo sai: " + downCount);
     }
 
+    private boolean isMyReport() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        return user != null && user.getUid().equals(authorId);
+    }
+
+    private void loadCurrentUserVote() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null || reportId == null || isMyReport()) {
+            voteStateLoaded = true;
+            updateVoteControls();
+            return;
+        }
+
+        voteStateLoaded = false;
+        updateVoteControls();
+        voteRepository.getVoteValue(reportId, user.getUid(), new VoteRepository.VoteValueCallback() {
+            @Override
+            public void onLoaded(int voteValue) {
+                if (!isAdded()) return;
+                currentUserVote = voteValue;
+                voteStateLoaded = true;
+                updateVoteControls();
+            }
+
+            @Override
+            public void onError(String error) {
+                if (!isAdded()) return;
+                voteStateLoaded = true;
+                updateVoteControls();
+            }
+        });
+    }
+
+    private void updateVoteControls() {
+        if (btnUpvote == null || btnDownvote == null) return;
+
+        if (isMyReport()) {
+            btnUpvote.setText("Không thể tự xác nhận");
+            btnDownvote.setText("Không thể tự báo sai");
+            btnUpvote.setEnabled(false);
+            btnDownvote.setEnabled(false);
+            if (tvVoteHint != null) tvVoteHint.setText("Bạn không thể bình chọn báo cáo của mình.");
+            return;
+        }
+
+        btnUpvote.setText(currentUserVote == 1 ? "Đã xác nhận ✓" : "Xác nhận (+1)");
+        btnDownvote.setText(currentUserVote == -1 ? "Đã báo sai ✓" : "Báo sai (-1)");
+        boolean enabled = voteStateLoaded && !voteInProgress;
+        btnUpvote.setEnabled(enabled);
+        btnDownvote.setEnabled(enabled);
+
+        if (tvVoteHint != null) {
+            if (!voteStateLoaded) {
+                tvVoteHint.setText("Đang tải trạng thái bình chọn...");
+            } else if (currentUserVote == 1) {
+                tvVoteHint.setText("Bạn đã xác nhận. Chạm lại để hủy bình chọn.");
+            } else if (currentUserVote == -1) {
+                tvVoteHint.setText("Bạn đã báo sai. Chạm lại để hủy bình chọn.");
+            } else {
+                tvVoteHint.setText("Bình chọn giúp xác thực cảnh báo trong khu vực.");
+            }
+        }
+    }
+
+    // Dùng khi một thao tác khác (ví dụ xóa báo cáo) cần khóa tạm hai nút vote.
     private void setButtonsEnabled(boolean enabled) {
-        if (btnUpvote != null) btnUpvote.setEnabled(enabled);
-        if (btnDownvote != null) btnDownvote.setEnabled(enabled);
+        if (!enabled) {
+            if (btnUpvote != null) btnUpvote.setEnabled(false);
+            if (btnDownvote != null) btnDownvote.setEnabled(false);
+            return;
+        }
+        updateVoteControls();
     }
 
     private void vote(final int voteValue) {
@@ -685,18 +760,26 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
             return;
         }
         if (reportId == null) return;
+        if (isMyReport()) {
+            Toast.makeText(requireContext(), "Bạn không thể bình chọn báo cáo của mình", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        setButtonsEnabled(false);
+        voteInProgress = true;
+        updateVoteControls();
         voteRepository.castVote(reportId, user.getUid(), voteValue, new VoteRepository.VoteCallback() {
             @Override
             public void onSuccess() {
+                currentUserVote = currentUserVote == voteValue ? 0 : voteValue;
+                voteInProgress = false;
                 refreshCounts();
             }
 
             @Override
             public void onError(String error) {
                 if (!isAdded()) return;
-                setButtonsEnabled(true);
+                voteInProgress = false;
+                updateVoteControls();
                 Toast.makeText(requireContext(), "Không bình chọn được: " + error, Toast.LENGTH_SHORT).show();
             }
         });
@@ -729,14 +812,15 @@ public class ReportDetailSheet extends BottomSheetDialogFragment {
 
                         showCounts();
                         loadAuthor();
-                        setButtonsEnabled(true);
+                        updateVoteControls();
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         if (!isAdded()) return;
-                        setButtonsEnabled(true);
+                        voteInProgress = false;
+                        updateVoteControls();
                     }
                 });
     }
