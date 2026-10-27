@@ -4,9 +4,11 @@ import android.app.Dialog;
 import androidx.appcompat.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -103,6 +105,31 @@ public class QuickReportDialog extends Dialog {
                 dismiss();
             }
         });
+    }
+
+    /**
+     * On a short landscape screen, the six weather choices are taller than the
+     * default dialog window. Give the ScrollView a bounded window so users can
+     * scroll to every choice instead of the lower rows being clipped.
+     */
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        Window window = getWindow();
+        if (window == null) return;
+
+        boolean landscape = getContext().getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_LANDSCAPE;
+        int screenWidth = getContext().getResources().getDisplayMetrics().widthPixels;
+        int screenHeight = getContext().getResources().getDisplayMetrics().heightPixels;
+        int width = (int) (screenWidth * (landscape ? 0.78f : 0.92f));
+        int height = landscape
+                ? (int) (screenHeight * 0.90f)
+                : WindowManager.LayoutParams.WRAP_CONTENT;
+
+        window.setLayout(width, height);
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
 
     private void loadCategoriesFromRepository() {
