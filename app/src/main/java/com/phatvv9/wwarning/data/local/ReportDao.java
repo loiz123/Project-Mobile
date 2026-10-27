@@ -5,6 +5,7 @@ import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
+import androidx.room.Transaction;
 import java.util.List;
 
 @Dao
@@ -26,4 +27,15 @@ public interface ReportDao {
 
     @Query("DELETE FROM reports WHERE expiresAt < :currentTime")
     void deleteOlderThan(long currentTime);
+
+    @Query("DELETE FROM reports")
+    void deleteAll();
+
+    @Transaction
+    default void replaceAll(List<ReportEntity> reports) {
+        deleteAll();
+        if (reports != null && !reports.isEmpty()) {
+            insertAll(reports);
+        }
+    }
 }

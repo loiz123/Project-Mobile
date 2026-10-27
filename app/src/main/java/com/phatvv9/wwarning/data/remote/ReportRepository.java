@@ -232,15 +232,11 @@ public class ReportRepository {
         }
 
         List<Report> result = new ArrayList<>(allReports.values());
-        if (result.isEmpty() && localCache != null) {
-            loadReportsFromRoomCache();
-            return;
-        }
         sortReportsDesc(result);
         reportsLiveData.setValue(result);
 
-        if (localCache != null && !result.isEmpty()) {
-            localCache.saveReportsToRoom(result);
+        if (localCache != null) {
+            localCache.replaceReportsFromRemote(result);
         }
     }
 
