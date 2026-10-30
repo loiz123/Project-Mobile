@@ -11,9 +11,12 @@ service cloud.firestore {
       return /databases/$(database)/documents/users/$(uid);
     }
 
-    // Admin: users/{uid}.role == 'Admin' (đặt tay trên Console, client không tự đặt được)
+    // Admin: chỉ dựa trên role đã được cấp trong users/{uid} trên Firestore.
+    // Không cấp quyền chỉ vì email đăng nhập trùng email admin.
     function isAdmin() {
-      return isSignedIn() && get(userDoc(request.auth.uid)).data.role == 'Admin';
+      return isSignedIn()
+        && exists(userDoc(request.auth.uid))
+        && get(userDoc(request.auth.uid)).data.role == 'Admin';
     }
 
     // Bị khóa: users/{uid}.status == 'Banned'. Chưa có hồ sơ thì coi như không bị khóa.
@@ -37,7 +40,7 @@ service cloud.firestore {
         && request.resource.data.status == 'Active'
         && request.resource.data.reputationScore == 100
         && request.resource.data.reportCount == 0
-        && request.resource.data.authProvider in ['Guest', 'Google'];
+        && request.resource.data.authProvider in ['Guest', 'Google', 'Email'];
 
       // Chủ hồ sơ chỉ sửa tên và loại tài khoản; admin chỉ sửa status (khóa/mở khóa);
       // người khác (người vote) chỉ đổi reputationScore của người đăng báo cáo,
@@ -46,7 +49,7 @@ service cloud.firestore {
         (request.auth.uid == userId
           && request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly(['displayName', 'authProvider'])
-          && request.resource.data.authProvider in ['Guest', 'Google'])
+          && request.resource.data.authProvider in ['Guest', 'Google', 'Email'])
         ||
         (isAdmin()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
@@ -89,9 +92,21 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'Active'
         && request.resource.data.get('upCount', 0) == 0
-        && request.resource.data.get('downCount', 0) == 0;
+        && request.resource.data.get('downCount', 0) == 0
+        && request.resource.data.categoryId is string
+        && request.resource.data.geohash is string
+        && request.resource.data.latitude is number
+        && request.resource.data.longitude is number
+        && request.resource.data.latitude >= -90 && request.resource.data.latitude <= 90
+        && request.resource.data.longitude >= -180 && request.resource.data.longitude <= 180
+        && request.resource.data.expiresAt is timestamp;
 
       allow update: if isSignedIn() && (
+        // Chủ bài viết tự xóa hoặc ẩn báo cáo của mình
+        (request.auth.uid == resource.data.userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status in ['Deleted', 'Hidden'])
+        ||
         // Admin ẩn/xóa/khôi phục báo cáo
         (isAdmin()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
@@ -106,7 +121,8 @@ service cloud.firestore {
           && math.abs(request.resource.data.get('upCount', 0) - resource.data.get('upCount', 0)) <= 1
           && math.abs(request.resource.data.get('downCount', 0) - resource.data.get('downCount', 0)) <= 1
           && (request.resource.data.status == resource.data.status
-              || request.resource.data.status == 'Hidden'))
+              || (request.resource.data.status == 'Hidden'
+                  && request.resource.data.get('downCount', 0) > request.resource.data.get('upCount', 0))))
       );
 
       allow delete: if false;
@@ -130,6 +146,32 @@ service cloud.firestore {
         && request.resource.data.voteValue in [1, -1];
 
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ---------- report_images: ảnh báo cáo (Base64 đã mã hóa AES-GCM) ----------
+    // Tách khỏi "reports" để bản đồ không phải tải ảnh. Mỗi báo cáo tối đa 1 ảnh, do chủ báo cáo tạo.
+    match /report_images/{reportId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && !isBanned()
+        && request.resource.data.keys().hasOnly(['userId', 'imageData', 'createdAt'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.imageData is string
+        && request.resource.data.imageData.size() < 150000
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/reports/$(reportId))
+        && get(/databases/$(database)/documents/reports/$(reportId)).data.userId == request.auth.uid;
+
+      allow update: if false;
+      allow delete: if isSignedIn()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // ---------- secrets: khóa mã hóa ảnh (chỉ đọc; tạo/sửa bằng Firebase Console) ----------
+    match /secrets/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
     }
 
     // ---------- banned_users (chỉ admin) ----------

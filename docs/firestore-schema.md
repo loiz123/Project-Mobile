@@ -59,9 +59,9 @@ Tổng số bảng mỗi người: Phát 3, Thiện 1, Quốc 5, Hải 3.
 
 | Trường | Kiểu | Ghi chú |
 |---|---|---|
-| name | string | Nắng, Mưa, Sương mù, Bão, Ngập lụt, Cây đổ |
+| name | string | Nắng, Mưa, Sương mù, Bão, Ngập lụt, Âm u |
 | iconUrl | string | |
-| isRisk | boolean | true cho Ngập lụt, Bão, Cây đổ (bộ lọc rủi ro) |
+| isRisk | boolean | true cho Ngập lụt, Bão (bộ lọc rủi ro) |
 | isActive | boolean | true |
 
 ### 3.4 `severities` (Hải)

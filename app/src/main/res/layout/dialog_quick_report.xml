@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_dialog_rounded"
@@ -227,9 +232,9 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Cây đổ -->
+        <!-- Âm u -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/btnTree"
+            android:id="@+id/btnOvercast"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_columnWeight="1"
@@ -251,7 +256,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🪵"
+                    android:text="☁️"
                     android:textSize="28sp" />
 
                 <TextView
@@ -259,7 +264,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:singleLine="true"
-                    android:text="Cây đổ"
+                    android:text="Âm u"
                     android:textColor="?android:attr/textColorPrimary"
                     android:textSize="14sp"
                     android:textStyle="bold" />
@@ -278,3 +283,5 @@
         android:textSize="14sp" />
 
 </LinearLayout>
+
+</ScrollView>

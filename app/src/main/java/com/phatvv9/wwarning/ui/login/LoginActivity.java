@@ -8,11 +8,12 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseUser;
 import com.phatvv9.wwarning.MainActivity;
+import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.data.remote.AuthRepository;
 import com.phatvv9.wwarning.databinding.ActivityLoginBinding;
 
 /**
- * Màn hình đầu tiên. Đã có phiên đăng nhập (ẩn danh hoặc Google) thì vào thẳng MainActivity.
+ * Màn hình đầu tiên. Đã có phiên đăng nhập (ẩn danh, Google hoặc Email Admin) thì vào thẳng MainActivity.
  * users/{uid} và user_devices do MainActivity tạo sau khi vào.
  */
 public class LoginActivity extends AppCompatActivity {
@@ -44,6 +45,7 @@ public class LoginActivity extends AppCompatActivity {
                 signInWithGoogle();
             }
         });
+
     }
 
     private void signInAsGuest() {
@@ -87,6 +89,7 @@ public class LoginActivity extends AppCompatActivity {
         binding.progress.setVisibility(loading ? View.VISIBLE : View.GONE);
         binding.btnGuest.setEnabled(!loading);
         binding.btnGoogle.setEnabled(!loading);
+
         if (loading) {
             binding.tvError.setVisibility(View.GONE);
         }
