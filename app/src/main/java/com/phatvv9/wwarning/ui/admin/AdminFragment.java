@@ -2,6 +2,8 @@ package com.phatvv9.wwarning.ui.admin;
 
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,6 +37,7 @@ import com.phatvv9.wwarning.model.Report;
 import com.phatvv9.wwarning.model.UserProfile;
 import com.phatvv9.wwarning.ui.report.ReportDetailSheet;
 import com.phatvv9.wwarning.util.FirestoreNames;
+import com.phatvv9.wwarning.util.ReportVisibility;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,17 +61,21 @@ public class AdminFragment extends Fragment {
     private static final int TAB_VISIBLE = 0;
     private static final int TAB_HIDDEN = 1;
     private static final int TAB_DELETED = 2;
-    private static final String[] TAB_NAMES = {"Hiển thị", "Đã ẩn", "Đã xóa"};
+    private static final int TAB_EXPIRED = 3;
+    private static final String[] TAB_NAMES = {"Còn hiệu lực", "Đã ẩn", "Đã xóa", "Hết hạn"};
     private static final String[] TAB_HINTS = {
             "← Vuốt trái: Ẩn   |   Nhấn giữ: Xóa",
-            "Vuốt phải: Khôi phục →",
-            "Vuốt phải: Khôi phục →"
+            "Vuốt phải: Khôi phục báo cáo còn hạn →",
+            "Vuốt phải: Khôi phục báo cáo còn hạn →",
+            "Báo cáo hết hạn không xuất hiện trên bản đồ. Nhấn giữ để xóa."
     };
     private TabLayout tabFilter;
     private TextView tvSubtitle;
     private int currentTab = TAB_VISIBLE;
     /** Toàn bộ báo cáo từ Firestore; adapter chỉ nhận danh sách đã lọc theo tab. */
     private final List<Report> allReports = new ArrayList<>();
+    private final Handler expiryHandler = new Handler(Looper.getMainLooper());
+    private final Runnable expiryRefresh = this::applyFilter;
 
     @Nullable
     @Override
@@ -103,6 +110,7 @@ public class AdminFragment extends Fragment {
             public void onTabReselected(TabLayout.Tab tab) {
             }
         });
+        tabFilter.selectTab(tabFilter.getTabAt(currentTab));
         tvSubtitle.setText(TAB_HINTS[currentTab]);
 
         ViewCompat.setOnApplyWindowInsetsListener(view, new OnApplyWindowInsetsListener() {
@@ -245,7 +253,12 @@ public class AdminFragment extends Fragment {
                     @Override
                     public int getSwipeDirs(@NonNull RecyclerView recyclerView,
                                             @NonNull RecyclerView.ViewHolder viewHolder) {
-                        // Tab Hiển thị: chỉ vuốt trái (ẩn). Tab Đã ẩn / Đã xóa: chỉ vuốt phải (khôi phục).
+                        if (currentTab == TAB_EXPIRED) return 0;
+                        Report report = adapter.getReportAt(viewHolder.getBindingAdapterPosition());
+                        if (currentTab != TAB_VISIBLE && (report == null
+                                || !ReportVisibility.hasValidExpiry(report, System.currentTimeMillis()))) {
+                            return 0;
+                        }
                         return currentTab == TAB_VISIBLE ? ItemTouchHelper.LEFT : ItemTouchHelper.RIGHT;
                     }
 
@@ -272,7 +285,7 @@ public class AdminFragment extends Fragment {
     private void confirmDelete(@NonNull final Report report) {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Xóa báo cáo?")
-                .setMessage("Báo cáo sẽ bị gỡ khỏi bản đồ. Bạn vẫn khôi phục được bằng cách vuốt phải.")
+                .setMessage("Báo cáo sẽ bị gỡ khỏi bản đồ. Chỉ khôi phục được khi báo cáo còn hạn.")
                 .setPositiveButton("Xóa", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -286,6 +299,12 @@ public class AdminFragment extends Fragment {
 
     private void moderate(@NonNull final Report report, @NonNull final String action,
                           @NonNull final String targetStatus) {
+        if (FirestoreNames.ReportStatus.ACTIVE.equals(targetStatus)
+                && !ReportVisibility.hasValidExpiry(report, System.currentTimeMillis())) {
+            toast("Báo cáo đã hết hạn, không thể khôi phục lên bản đồ");
+            applyFilter();
+            return;
+        }
         if (targetStatus.equals(report.getStatus())) {
             toast("Báo cáo đã ở trạng thái này");
             return;
@@ -293,7 +312,6 @@ public class AdminFragment extends Fragment {
         FirebaseUser admin = FirebaseAuth.getInstance().getCurrentUser();
         String adminUid = admin != null ? admin.getUid() : "admin_demo";
         if (report.getId() == null) return;
-
         // Cập nhật ngay trên giao diện; nếu server từ chối thì hoàn tác
         final String oldStatus = report.getStatus();
         report.setStatus(targetStatus);
@@ -350,9 +368,10 @@ public class AdminFragment extends Fragment {
         if (adapter == null || getView() == null) return;
 
         List<Report> shown = new ArrayList<>();
-        int[] counts = new int[3];
+        long now = System.currentTimeMillis();
+        int[] counts = new int[TAB_NAMES.length];
         for (Report r : allReports) {
-            int tab = tabOf(r);
+            int tab = tabOf(r, now);
             counts[tab]++;
             if (tab == currentTab) shown.add(r);
         }
@@ -375,13 +394,18 @@ public class AdminFragment extends Fragment {
         } else {
             showList();
         }
+        expiryHandler.removeCallbacks(expiryRefresh);
+        long delay = ReportVisibility.nextRefreshDelayMillis(allReports, now);
+        if (isResumed() && delay >= 0) expiryHandler.postDelayed(expiryRefresh, delay);
     }
 
-    private static int tabOf(Report r) {
-        String status = r.getStatus();
-        if (FirestoreNames.ReportStatus.DELETED.equals(status)) return TAB_DELETED;
-        if (FirestoreNames.ReportStatus.HIDDEN.equals(status)) return TAB_HIDDEN;
-        return TAB_VISIBLE;
+    private static int tabOf(Report r, long now) {
+        switch (ReportVisibility.stateOf(r, now)) {
+            case DELETED: return TAB_DELETED;
+            case HIDDEN: return TAB_HIDDEN;
+            case EXPIRED: return TAB_EXPIRED;
+            default: return TAB_VISIBLE;
+        }
     }
 
     /** Thời gian tạo (millis) để sắp xếp. createdAt null = vừa gửi, chưa có timestamp từ server -> coi là mới nhất. */
@@ -391,6 +415,7 @@ public class AdminFragment extends Fragment {
     }
 
     private void stopListening() {
+        expiryHandler.removeCallbacks(expiryRefresh);
         moderationRepository.stopListening();
         listening = false;
     }
@@ -410,6 +435,18 @@ public class AdminFragment extends Fragment {
         if (getContext() != null) {
             Toast.makeText(getContext(), text, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (UserRepository.getInstance().isAdmin()) applyFilter();
+    }
+
+    @Override
+    public void onPause() {
+        expiryHandler.removeCallbacks(expiryRefresh);
+        super.onPause();
     }
 
     @Override

@@ -16,7 +16,7 @@ import com.google.firebase.Timestamp;
 import com.phatvv9.wwarning.R;
 import com.phatvv9.wwarning.model.Report;
 import com.phatvv9.wwarning.ui.map.MapFragment;
-import com.phatvv9.wwarning.util.FirestoreNames;
+import com.phatvv9.wwarning.util.ReportVisibility;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,17 +73,23 @@ public class AdminReportAdapter extends RecyclerView.Adapter<AdminReportAdapter.
             holder.tvTime.setText("Vừa xong");
         }
 
-        String status = report.getStatus();
-        if (FirestoreNames.ReportStatus.HIDDEN.equals(status)) {
-            holder.tvStatus.setText("Đã ẩn");
+        long now = System.currentTimeMillis();
+        ReportVisibility.State state = ReportVisibility.stateOf(report, now);
+        String expiredSuffix = ReportVisibility.hasValidExpiry(report, now) ? "" : " · Hết hạn";
+        if (state == ReportVisibility.State.HIDDEN) {
+            holder.tvStatus.setText("Đã ẩn" + expiredSuffix);
             holder.tvStatus.setTextColor(ContextCompat.getColor(context, R.color.admin_status_hidden));
             holder.itemView.setAlpha(0.75f);
-        } else if (FirestoreNames.ReportStatus.DELETED.equals(status)) {
-            holder.tvStatus.setText("Đã xóa");
+        } else if (state == ReportVisibility.State.DELETED) {
+            holder.tvStatus.setText("Đã xóa" + expiredSuffix);
             holder.tvStatus.setTextColor(ContextCompat.getColor(context, R.color.admin_status_deleted));
             holder.itemView.setAlpha(0.75f);
+        } else if (state == ReportVisibility.State.EXPIRED) {
+            holder.tvStatus.setText("Đã hết hạn");
+            holder.tvStatus.setTextColor(ContextCompat.getColor(context, R.color.admin_status_expired));
+            holder.itemView.setAlpha(0.75f);
         } else {
-            holder.tvStatus.setText("Đang hiển thị");
+            holder.tvStatus.setText("Còn hiệu lực");
             holder.tvStatus.setTextColor(ContextCompat.getColor(context, R.color.admin_status_visible));
             holder.itemView.setAlpha(1f);
         }
