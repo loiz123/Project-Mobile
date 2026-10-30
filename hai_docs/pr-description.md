@@ -5,7 +5,7 @@ Hoàn thiện schema Room Local Database, cập nhật các POJO Models chuẩn 
 Closes #1
 
 ## Người làm / Người review
-- Người làm: @haiho2365
+- Người làm: @haiho2365-source
 - Người review: @loiz123 @hntrhunter @dinhquoc03032626
 
 ## Những thay đổi chính
@@ -45,3 +45,5 @@ Kết quả mong đợi: Khung giao diện khởi chạy thành công với Bott
 
 ## Câu hỏi cho người review
 - Về phần POJO models đã chuẩn camelCase và annotation `@PropertyName`, mọi người thấy đã hoàn toàn sẵn sàng để đấu nối với Firestore chưa?
+
+<!-- Updated documentation for PR description -->
