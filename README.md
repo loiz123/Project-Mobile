@@ -32,3 +32,5 @@ Dự án được xây dựng và thiết kế bởi 4 thành viên, mỗi ngư�
 * Hà Ngọc Thiện - @hntrhunter
 * Tiêu Lâm Định Quốc - @dinhquoc03032626
 * Hồ Duy Hải - @haiho2365-source
+
+<!-- Updated documentation README -->
