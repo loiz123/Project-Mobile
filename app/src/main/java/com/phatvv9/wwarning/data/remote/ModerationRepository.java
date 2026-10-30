@@ -13,7 +13,6 @@ import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
@@ -31,7 +30,6 @@ import java.util.Map;
  */
 public class ModerationRepository {
     private static final String TAG = "ModerationRepository";
-    private static final int REPORT_LIMIT = 50;
 
     public interface ReportsCallback {
         void onReports(@NonNull List<Report> reports);
@@ -56,12 +54,10 @@ public class ModerationRepository {
         this.db = db;
     }
 
-    /** Nghe realtime tối đa 50 báo cáo, nhiều downCount nhất lên đầu; không lọc status để admin thấy cả báo cáo đã ẩn. */
+    /** Nghe đầy đủ báo cáo để các tab và bộ đếm không bỏ sót thay đổi từ bản đồ. */
     public void listenToReports(@NonNull final ReportsCallback callback) {
         stopListening();
         reportsRegistration = db.collection(FirestoreNames.REPORTS)
-                .orderBy("downCount", Query.Direction.DESCENDING)
-                .limit(REPORT_LIMIT)
                 .addSnapshotListener(new EventListener<QuerySnapshot>() {
                     @Override
                     public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
