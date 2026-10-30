@@ -171,3 +171,5 @@ Dữ liệu mẫu:
 | `downvote_threshold` | 5 | Quy tắc tự ẩn báo cáo (Quốc) |
 
 Nơi đọc thông số phải có giá trị mặc định trong code (15, 60, 10, 5) để app vẫn chạy khi chưa có dữ liệu hoặc đọc lỗi.
+
+<!-- Updated documentation for firestore-schema -->

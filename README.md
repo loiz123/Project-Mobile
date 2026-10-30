@@ -33,6 +33,7 @@ Dự án được xây dựng và thiết kế bởi 4 thành viên, mỗi ngư�
 * Tiêu Lâm Định Quốc - @dinhquoc03032626
 * Hồ Duy Hải - @haiho2365-source
 
+<!-- Updated documentation README -->
 ## ⚙️ Cài đặt để build
 
 1. Mở dự án bằng Android Studio (nó tự tạo `local.properties` chứa `sdk.dir`; file này nằm trong `.gitignore`, **không commit**). Không cần điền `MAPS_API_KEY`: key Maps đã nằm trong `AndroidManifest.xml` và đã được giới hạn theo package `com.phatvv9.wwarning` + SHA-1 của `app/debug.keystore`.

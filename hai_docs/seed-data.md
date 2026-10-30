@@ -1,5 +1,5 @@
 # DỮ LIỆU MẪU CẤU HÌNH HỆ THỐNG (SEED DATA)
-*Người thực hiện: Hồ Duy Hải (@haiho2365)*
+*Người thực hiện: Hồ Duy Hải (@haiho2365-source)*
 *Dự án: WWarning - Project-Mobile*
 
 ## 1. Collection `categories` (Loại thời tiết)
@@ -26,3 +26,5 @@
 | `sev_mua_1` | `cat_mua`   | Mưa lất phất    | 1     |
 | `sev_mua_2` | `cat_mua`   | Mưa rào nặng hạt| 2     |
 | `sev_ngap_1`| `cat_ngap`  | Ngập nửa bánh xe| 3     |
+
+<!-- Updated documentation for Seed Data -->
